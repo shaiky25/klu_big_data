@@ -1,0 +1,135 @@
+{
+  "schema_version": 2,
+  "subject": "skills/bda-weekly-deliverables",
+  "generated": "2026-08-29",
+  "verdict": "Sound, dogfooded skill with two high-value gaps: no checkpoint before committing to all three deliverables off a self-derived brief, and Validate mode silently skips the PDF third of its own promise.",
+  "grade": "good",
+  "summary": "bda-weekly-deliverables passed a real end-to-end dogfood run (session6, 09/01/2026 model-diagnostics deliverables) with only mechanical bugs surfacing (a pandoc/xelatex fix, a deck-size undershoot) — both already fixed in SKILL.md. The five lenses found no critical issues and confirmed the customize.toml decline and lean SKILL.md were correctly scoped. The real opportunities are a soft-gate checkpoint before generating all three formats off a self-derived brief (the exact gap that caused the deck undershoot) and closing two determinism gaps: the brainstorm-intent.md date match and Rmd content rules have no script backing analogous to lint_deck.py.",
+  "standards": {
+    "canon": "/Users/faiz/Downloads/__POP/BDA_POP/2026_Aug/.claude/skills/bmad-workflow-builder/references/prompt-quality-canon.md",
+    "principles": "/Users/faiz/Downloads/__POP/BDA_POP/2026_Aug/.claude/skills/bmad-workflow-builder/references/skill-quality-principles.md",
+    "scripts": "/Users/faiz/Downloads/__POP/BDA_POP/2026_Aug/.claude/skills/bmad-workflow-builder/references/script-standards.md"
+  },
+  "themes": [
+    {
+      "title": "No checkpoint before committing to a self-derived brief",
+      "root_cause": "When no brainstorm-intent.md exists for the week, the skill drafts a content brief from topics.txt's terse bullet text alone and proceeds straight to building all three deliverables against it, with no point where the instructor confirms the brief first.",
+      "finding_ids": ["enhancement-1"],
+      "action": "Add a soft-gate: present the derived brief and ask for adjustments before starting the Rmd/deck/PDF build, skipped only when an authoritative brainstorm-intent.md was found."
+    },
+    {
+      "title": "Deterministic steps still done by hand",
+      "root_cause": "Two checkable, single-right-answer steps have no script backing: matching a brainstorm-intent.md's prose date against the target week, and verifying the Rmd's hard constraints (set.seed(42), zero external file reads) the way lint_deck.py already verifies the deck's.",
+      "finding_ids": ["determinism-1", "determinism-2"],
+      "action": "Extend current_topic.py (or add a companion script) to emit content_brief_path by globbing and date-matching brainstorm-intent.md files; add lint_rmd.py mirroring lint_deck.py's shape for the Rmd's exact-value rules."
+    },
+    {
+      "title": "Validate mode and the Overview's stated bar don't fully cover the PDF/Keynote reality",
+      "root_cause": "Validate mode's promise covers Rmd (knit check) and deck (lint_deck.py) but not the PDF build, and the Overview states an unconditional cross-platform deck bar that the disclosed Known Gap already concedes isn't guaranteed.",
+      "finding_ids": ["architecture-1", "architecture-2"],
+      "action": "Add a PDF check to Validate mode (or explicitly scope Validate to Rmd+deck), and add an instruction to flag the residual Keynote-import risk to the user at handoff even when lint_deck.py passes clean."
+    }
+  ],
+  "strengths": [
+    "Dogfooded for real on session6's actual 09/01/2026 content, not just lint-checked — caught and fixed two real bugs (pandoc unicode/engine, deck-size undershoot) before shipping",
+    "customize.toml correctly declined; the lens confirmed nothing in the skill's real shape argues for a customization surface",
+    "SKILL.md stays within its token budget with gotchas kept inline per convention, not scattered to references/ that would break on compaction",
+    "lint_deck.py is a genuine plan-validate-execute asset: it caught a real regression (paragraph-vs-run font detection) during the skill's own build, verified by unit tests"
+  ],
+  "recommendations": [
+    { "rank": 1, "action": "Add the soft-gate checkpoint before building all three deliverables off a self-derived brief", "resolves": ["enhancement-1"] },
+    { "rank": 2, "action": "Add a PDF check to Validate mode and flag residual Keynote-import risk at handoff", "resolves": ["architecture-1", "architecture-2"] },
+    { "rank": 3, "action": "Script the brainstorm-intent.md date match and add lint_rmd.py for the Rmd's hard constraints", "resolves": ["determinism-1", "determinism-2"] },
+    { "rank": 4, "action": "Trim the duplicate 'no medical framing' clause and restore the generic {skill-name} resolution-rule token", "resolves": ["leanness-1", "architecture-3"] }
+  ],
+  "experience": {
+    "journeys": [
+      { "name": "Weekly create run, no prior brainstorm doc", "steps": "current_topic.py -> draft brief from topic_text -> build Rmd, deck, PDF -> knit + lint_deck.py -> handoff" },
+      { "name": "Weekly create run, brainstorm-intent.md already exists", "steps": "current_topic.py -> hand-match date against brainstorm-intent.md files -> use as authoritative brief -> build all three -> validate -> handoff (this run's actual path)" }
+    ],
+    "headless": "Mostly headless-ready (--date is a parameter, brief lookup is automatic, modes route on stated intent), but the 'topic too raw, offer bmad-brainstorming' judgment call has no named fallback for an unattended run."
+  },
+  "findings": [
+    {
+      "id": "enhancement-1",
+      "lens": "enhancement",
+      "severity": "high",
+      "title": "Add a soft-gate checkpoint before building all three deliverables off a self-derived brief",
+      "location": "SKILL.md:20 (Determine the week and its content brief)",
+      "evidence": "When no brainstorm-intent.md matches the week, the skill drafts the brief 'directly from topic_text against the rules below' and proceeds straight into generating the PDF, deck, and Rmd, with no point where the instructor confirms the derived brief first. The dogfood run's own memlog shows this isn't hypothetical: the first deck draft under-shot the target range (9 vs 15-20 slides) and needed real rework discovered only after generation.",
+      "recommendation": "After drafting the brief from topic_text alone (skip when an authoritative brainstorm-intent.md was found), add a soft-gate: present the derived brief and ask 'anything to add or adjust before I build all three?' before starting the build."
+    },
+    {
+      "id": "architecture-1",
+      "lens": "architecture",
+      "severity": "high",
+      "title": "Validate mode has no real path for the PDF deliverable",
+      "location": "SKILL.md:49 (Modes, Validate) vs SKILL.md:43 (PDF document)",
+      "evidence": "Validate mode promises to 're-run the knit check and lint_deck.py against an existing output_dir without regenerating content.' Knit check covers the Rmd, lint_deck.py covers the deck, but the PDF build step has no analogous check defined anywhere.",
+      "recommendation": "Add a PDF check to Validate mode (confirm the PDF exists and re-run the pandoc render to catch a broken build) or explicitly scope Validate mode to Rmd+deck only."
+    },
+    {
+      "id": "architecture-2",
+      "lens": "architecture",
+      "severity": "medium",
+      "title": "Overview's Keynote-compat bar is not reconciled with the Known Gap disclosure",
+      "location": "SKILL.md:8 (Overview/bar) vs SKILL.md:51-53 (Known gap)",
+      "evidence": "The Overview states the bar unconditionally ('the deck opens in PowerPoint, Keynote, and Google Slides'), but Known Gap concedes a prior deck still fails to import in Keynote for an unisolated cause and that lint_deck.py cannot detect that failure class. Nothing instructs the agent to surface this residual risk at handoff.",
+      "recommendation": "Add a line instructing the agent to flag the residual Keynote-import risk to the user at handoff, since a lint-clean deck does not guarantee the stated bar is met."
+    },
+    {
+      "id": "determinism-1",
+      "lens": "determinism",
+      "severity": "medium",
+      "title": "Content-brief date matching done by hand instead of scripted glob+compare",
+      "location": "SKILL.md: \"Determine the week and its content brief\"",
+      "evidence": "The date lives as free text in each brainstorm-intent.md's H1, not frontmatter, so SKILL.md instructs the model to glob a directory, open each candidate file, and regex/eyeball a date out of prose to find an exact string match — a fetch+extract+compare with one correct answer per input.",
+      "recommendation": "Extend current_topic.py (or add a companion script) to glob _bmad-output/brainstorming/*/brainstorm-intent.md, regex-extract the MM/DD/YYYY date, and emit content_brief_path (or null) alongside the existing fields."
+    },
+    {
+      "id": "determinism-2",
+      "lens": "determinism",
+      "severity": "medium",
+      "title": "Rmd's exact-value requirements have no lint script, unlike the deck",
+      "location": "SKILL.md: Voice/register constraints and Modes (Validate)",
+      "evidence": "'set.seed(42)' and 'zero external file dependencies' are stated as hard, checkable constraints, but only the knit check enforces them indirectly — it doesn't check the seed is exactly 42 or that no external file reads crept in. The deck has lint_deck.py enforcing its equivalent rules; the Rmd has no counterpart.",
+      "recommendation": "Add lint_rmd.py mirroring lint_deck.py's shape (grep for set.seed(42), grep for external-file-read calls like read.csv/read_excel/source() outside the generated chunk) and wire it into the same handoff and Validate-mode steps."
+    },
+    {
+      "id": "enhancement-2",
+      "lens": "enhancement",
+      "severity": "medium",
+      "title": "Opportunity: add a final self-review pass against the Voice/register rules before handoff",
+      "location": "SKILL.md: Voice, register, and constraints; Build the three deliverables",
+      "evidence": "Everything validated before handoff today is deterministic and script-checked (knit, lint_deck.py). Nothing checks the judgment-only Voice rules (keynote register vs. classroom lecture, no medical framing, mnemonic never appearing as literal text, the flawed-example-then-fix construction) — exactly the class of rule a script can't catch and a model drafting under token pressure can quietly drift from.",
+      "recommendation": "Before declaring a deliverable done, add one lightweight instruction: re-read the drafted content against the Voice/register/constraints list and flag any drift before handoff."
+    },
+    {
+      "id": "enhancement-3",
+      "lens": "enhancement",
+      "severity": "medium",
+      "title": "Opportunity: name a fallback for the 'topic too raw' judgment call so unattended runs don't stall",
+      "location": "SKILL.md:20",
+      "evidence": "'offer bmad-brainstorming or bmad-forge-idea first if the topic is too raw' is the one interaction point in this workflow that depends on a human being present. Everything else is already headless-ready, but this judgment call has no named default.",
+      "recommendation": "Name the fallback inline: if running unattended, proceed with the best-effort brief and flag the assumption in the handoff summary, rather than stopping to offer brainstorming."
+    },
+    {
+      "id": "leanness-1",
+      "lens": "leanness",
+      "severity": "low",
+      "title": "\"no medical framing\" stated twice in adjacent bullets",
+      "location": "SKILL.md: Voice, register, and constraints — every week",
+      "evidence": "The same constraint appears verbatim in two consecutive bullets with no new case between them.",
+      "recommendation": "Drop the trailing \", no medical framing\" from the second bullet; the constraint is already established one line above."
+    },
+    {
+      "id": "architecture-3",
+      "lens": "architecture",
+      "severity": "low",
+      "title": "Resolution rules block hardcodes the skill name instead of the {skill-name} token",
+      "location": "SKILL.md:14",
+      "evidence": "The canonical Resolution rules block documents the generic token pattern '{skill-name} -> the skill directory's basename'; this SKILL.md instead states the literal name, making the token currently unused and undocumented if a future edit needs it.",
+      "recommendation": "Restore the generic '{skill-name} -> the skill directory's basename' bullet."
+    }
+  ]
+}

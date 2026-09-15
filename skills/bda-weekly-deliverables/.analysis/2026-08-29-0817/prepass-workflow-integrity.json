@@ -1,0 +1,85 @@
+{
+  "scanner": "workflow-integrity-prepass",
+  "script": "prepass-workflow-integrity.py",
+  "version": "1.0.0",
+  "skill_path": "skills/bda-weekly-deliverables",
+  "timestamp": "2026-08-29T13:17:31.604458+00:00",
+  "status": "warning",
+  "metadata": {
+    "frontmatter": {
+      "name": "bda-weekly-deliverables",
+      "description": "Generates this week's class PDF, deck, and R Markdown. Use when user says \"build this week's deliverables\", \"generate the class materials\", or \"make this week's deck/PDF/Rmd\"."
+    },
+    "sections": [
+      {
+        "level": 2,
+        "title": "Resolution rules",
+        "line": 10
+      },
+      {
+        "level": 2,
+        "title": "Determine the week and its content brief",
+        "line": 16
+      },
+      {
+        "level": 2,
+        "title": "Voice, register, and constraints \u2014 every week",
+        "line": 22
+      },
+      {
+        "level": 2,
+        "title": "Running dataset",
+        "line": 31
+      },
+      {
+        "level": 2,
+        "title": "Build the three deliverables",
+        "line": 35
+      },
+      {
+        "level": 2,
+        "title": "Modes",
+        "line": 45
+      },
+      {
+        "level": 2,
+        "title": "Known gap",
+        "line": 51
+      }
+    ],
+    "workflow_type": "simple-utility"
+  },
+  "stage_summary": {
+    "total_stages": 0,
+    "referenced": [],
+    "actual": [],
+    "missing_stages": [],
+    "orphaned_stages": []
+  },
+  "prompt_details": [],
+  "issues": [
+    {
+      "file": "SKILL.md",
+      "line": 1,
+      "severity": "high",
+      "category": "sections",
+      "issue": "Missing ## Overview section"
+    },
+    {
+      "file": "SKILL.md",
+      "line": 1,
+      "severity": "high",
+      "category": "sections",
+      "issue": "Missing ## On Activation section"
+    }
+  ],
+  "summary": {
+    "total_issues": 2,
+    "by_severity": {
+      "critical": 0,
+      "high": 2,
+      "medium": 0,
+      "low": 0
+    }
+  }
+}

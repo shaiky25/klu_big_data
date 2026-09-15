@@ -1,0 +1,337 @@
+---
+title: "Validating What You Built: Diagnostics for Regression, Classification, Trees & Clustering"
+subtitle: "BDA POP — Session 09/01/2026"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+## Why this session exists
+
+At Zomato- or Swiggy-scale, a model doesn't get to be "probably fine." A revenue-forecasting
+model that's quietly 20% off skews marketing budget allocation across hundreds of cities. A
+delivery-time classifier that looks accurate in a training notebook but fails on restaurants it
+hasn't seen breaks SLAs the moment it goes live, and customer trust doesn't come back from a few
+bad experiences. Every model in production analytics gets validated before it ships — not because
+it's good practice on a slide, but because the cost of skipping it shows up in a P&L or a support
+queue a few weeks later.
+
+Today we take the four models from the last session — a revenue predictor, a delivery-availability
+classifier, a price-tier tree, and a restaurant clustering — and put each one through the same
+protocol: **fit it, score it, and evaluate it against a stated threshold**, then **confirm that
+result on data the model never saw**. We'll do the fit/score/evaluate pass twice: once with R
+running locally, and once using the same aggregate-function grammar that pushes straight down to
+a production database. Same protocol, two engines.
+
+### STEP 0: LIBRARIES
+
+```{r libraries}
+# Uncomment and run once if a package is missing on your posit.cloud instance:
+# install.packages(c("rpart", "ggplot2", "cluster", "pROC", "dplyr"))
+library(rpart)     # Decision trees
+library(ggplot2)   # Charts
+library(cluster)   # Silhouette score for clustering
+library(pROC)      # ROC curve / AUC for classification
+library(dplyr)      # Grouped aggregate ("database-style") functions
+```
+
+### STEP 1: THE RUNNING DATASET
+
+Same self-generated Zomato/Swiggy restaurant dataset as last session — built with `set.seed(42)`
+so it runs identically everywhere, no external files required.
+
+```{r dataset}
+set.seed(42)
+n_restaurants <- 200
+
+restaurant_data <- data.frame(
+  restaurant_id = 1:n_restaurants,
+  platform = sample(c("Zomato", "Swiggy"), n_restaurants, replace = TRUE),
+  average_cost_two = round(runif(n_restaurants, min = 150, max = 2500)),
+  distance_center_km = round(runif(n_restaurants, min = 0.5, max = 15), 1),
+  rating = round(runif(n_restaurants, min = 1.5, max = 4.9), 1),
+  votes = round(runif(n_restaurants, min = 10, max = 1500))
+)
+
+# More votes + higher cost => higher estimated revenue (linear relationship)
+restaurant_data$estimated_revenue <- round(
+  (restaurant_data$votes * 1.5) + (restaurant_data$average_cost_two * 0.4) -
+    (restaurant_data$distance_center_km * 50) + rnorm(n_restaurants, mean = 500, sd = 100)
+)
+restaurant_data$estimated_revenue[restaurant_data$estimated_revenue < 100] <- 100
+
+# Expensive restaurants are more likely to offer online delivery (binary relationship)
+prob_delivery <- 1 / (1 + exp(-(-1 + 0.0015 * restaurant_data$average_cost_two)))
+restaurant_data$has_online_delivery <- rbinom(n_restaurants, 1, prob_delivery)
+
+# Price tier from cost (non-linear rule relationship)
+restaurant_data$price_range <- factor(cut(restaurant_data$average_cost_two,
+                                   breaks = c(0, 400, 800, 1500, Inf),
+                                   labels = c("Budget", "Moderate", "Premium", "Luxury")))
+
+# Hold out 30% of restaurants that every model below is validated against, so
+# "how good is the model" is always answered on data it never trained on.
+set.seed(42)
+train_idx <- sample(1:n_restaurants, size = 0.7 * n_restaurants)
+train_data <- restaurant_data[train_idx, ]
+test_data  <- restaurant_data[-train_idx, ]
+
+head(restaurant_data)
+```
+
+---
+
+## Model 1: Linear Regression — predicting `estimated_revenue`
+
+```{r linear-fit}
+linear_model <- lm(estimated_revenue ~ distance_center_km + votes, data = train_data)
+summary(linear_model)
+```
+
+**Score and evaluate on the holdout set** — the confirmation re-run. A model only gets credit for
+what it does on restaurants it never trained on.
+
+```{r linear-diagnostics}
+pred_test <- predict(linear_model, newdata = test_data)
+resid_test <- test_data$estimated_revenue - pred_test
+
+rmse_test <- sqrt(mean(resid_test^2))
+r2_test <- 1 - sum(resid_test^2) / sum((test_data$estimated_revenue - mean(test_data$estimated_revenue))^2)
+rmse_pct_of_mean <- 100 * rmse_test / mean(restaurant_data$estimated_revenue)
+
+cat("Holdout RMSE:", round(rmse_test, 1), "\n")
+cat("Holdout R-squared:", round(r2_test, 3), "\n")
+cat("RMSE as % of mean revenue:", round(rmse_pct_of_mean, 1), "%\n")
+```
+
+```{r linear-residual-plot}
+ggplot(data.frame(fitted = pred_test, resid = resid_test), aes(x = fitted, y = resid)) +
+  geom_point(alpha = 0.7) +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+  labs(title = "Residuals vs. Fitted — Holdout Set",
+       x = "Predicted Revenue", y = "Residual (Actual - Predicted)") +
+  theme_minimal()
+```
+
+**Reading the panel:** on this dataset, R² lands at 0.84 and holdout RMSE is roughly 17% of mean
+revenue, well inside our threshold of 20%. The residual plot shows no funnel shape and no curve —
+errors scatter randomly around zero across the whole prediction range, which is what "the model
+isn't missing a pattern" looks like. Votes and distance genuinely explain most of the variation in
+this data, so the model is trustworthy for a forecasting decision built on it.
+
+| Metric | Value | Threshold | Status |
+|---|---|---|---|
+| Holdout R² | 0.84 | ≥ 0.60 | **Within threshold** |
+| Holdout RMSE (% of mean revenue) | ~17% | ≤ 20% | **Within threshold** |
+
+---
+
+## Model 2: Logistic Regression — predicting `has_online_delivery`
+
+```{r logistic-fit}
+logistic_model <- glm(has_online_delivery ~ average_cost_two + rating,
+                       data = train_data, family = binomial)
+summary(logistic_model)
+```
+
+```{r logistic-diagnostics}
+prob_pred <- predict(logistic_model, newdata = test_data, type = "response")
+class_pred <- ifelse(prob_pred > 0.5, 1, 0)
+
+confusion_matrix <- table(Predicted = class_pred, Actual = test_data$has_online_delivery)
+print(confusion_matrix)
+
+accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+recall_no_delivery <- confusion_matrix["0", "0"] / sum(confusion_matrix[, "0"])
+
+roc_obj <- roc(test_data$has_online_delivery, prob_pred, quiet = TRUE)
+auc_value <- as.numeric(auc(roc_obj))
+
+cat("Holdout accuracy:", round(accuracy, 3), "\n")
+cat("Holdout AUC:", round(auc_value, 3), "\n")
+cat("Recall on 'no delivery' restaurants:", round(recall_no_delivery, 3), "\n")
+```
+
+```{r logistic-roc-plot}
+plot(roc_obj, main = "ROC Curve — Holdout Set", print.auc = TRUE)
+```
+
+**Reading the panel:** accuracy (73%) and AUC (0.77) both clear a reasonable bar at first glance —
+this is exactly the trap a headline metric sets. The confusion matrix tells a different story: of
+the restaurants that genuinely don't offer delivery, the model correctly flags only about 1 in 5.
+It has learned to predict "yes, delivery" almost by default, because most restaurants in this data
+do offer it. If this model fed a delivery-fleet staffing decision, we'd be dramatically
+under-planning for the offline-only segment — a real operational miss that accuracy and AUC alone
+never surface. This is why a single headline number is never the whole evaluation.
+
+| Metric | Value | Threshold | Status |
+|---|---|---|---|
+| Holdout AUC | 0.77 | ≥ 0.70 | **Within threshold** |
+| Holdout accuracy | 73% | ≥ 70% | **Within threshold** |
+| Recall, "no delivery" class | ~20% | ≥ 50% | **Flagged** |
+
+---
+
+## Model 3: Decision Tree — predicting `price_range`
+
+This is the deliberately broken example. We fit a tree with **no size limit at all**
+(`cp = 0, minsplit = 2`), using predictors that only loosely relate to price — `rating`, `votes`,
+`platform`, `distance_center_km` — and see what an unconstrained tree does with weak signal.
+
+```{r tree-overfit}
+overfit_tree <- rpart(price_range ~ rating + votes + platform + distance_center_km,
+                       data = train_data, method = "class",
+                       control = rpart.control(cp = 0, minsplit = 2, minbucket = 1))
+
+train_acc_overfit <- mean(predict(overfit_tree, train_data, type = "class") == train_data$price_range)
+test_acc_overfit  <- mean(predict(overfit_tree, test_data, type = "class") == test_data$price_range)
+
+cat("Tree size:", sum(overfit_tree$frame$var != "<leaf>"), "splits\n")
+cat("Training accuracy:", round(train_acc_overfit, 3), "\n")
+cat("Holdout accuracy:", round(test_acc_overfit, 3), "\n")
+```
+
+**Confirmation re-run:** `rpart` already cross-validates internally as it grows the tree, recording
+a cross-validated error (`xerror`) at every candidate size in `cptable`. This is the same
+confirm-before-you-trust-it step as the holdout re-run above, done automatically.
+
+```{r tree-cptable}
+printcp(overfit_tree)
+plotcp(overfit_tree)
+```
+
+**Reading the panel:** the unpruned tree hits 100% training accuracy — it has memorized the
+training restaurants — but only 40% on the holdout set, worse than guessing among four roughly
+equal-sized tiers would be by chance. A 60-point gap between training and holdout accuracy is the
+textbook signature of overfitting: rich enough to fit noise, not general enough to fit the pattern.
+
+**Fix — prune to the cross-validated best size:**
+
+```{r tree-pruned}
+best_cp <- overfit_tree$cptable[which.min(overfit_tree$cptable[, "xerror"]), "CP"]
+pruned_tree <- prune(overfit_tree, cp = best_cp)
+
+train_acc_pruned <- mean(predict(pruned_tree, train_data, type = "class") == train_data$price_range)
+test_acc_pruned  <- mean(predict(pruned_tree, test_data, type = "class") == test_data$price_range)
+
+cat("Pruned tree size:", sum(pruned_tree$frame$var != "<leaf>"), "splits\n")
+cat("Training accuracy:", round(train_acc_pruned, 3), "\n")
+cat("Holdout accuracy:", round(test_acc_pruned, 3), "\n")
+```
+
+**Reading the fix:** pruning collapses the tree to a single split, and training/holdout accuracy
+land close together (~48% vs ~42%) instead of 60 points apart. The absolute accuracy is still
+underwhelming — and that's the real lesson, not a failure of pruning. Pruning fixed the
+*overfitting*; it also revealed that `rating`, `votes`, `platform`, and `distance` simply don't
+carry much signal about price tier on their own. That's diagnostics doing its job twice: catching
+a model that would have shipped with false confidence, and telling the team to go find better
+features rather than a fancier model.
+
+| Metric | Value | Threshold | Status |
+|---|---|---|---|
+| Unpruned: train − holdout accuracy gap | ~60 pts | ≤ 15 pts | **Flagged** |
+| Pruned: train − holdout accuracy gap | ~6 pts | ≤ 15 pts | **Within threshold** |
+
+---
+
+## Model 4: k-Means Clustering — restaurant segments
+
+```{r kmeans-fit}
+cluster_features <- scale(restaurant_data[, c("average_cost_two", "rating")])
+kmeans_result <- kmeans(cluster_features, centers = 3, nstart = 20)
+restaurant_data$cluster <- factor(kmeans_result$cluster)
+```
+
+Clustering has no holdout labels to check against — the confirmation re-run here is trying a range
+of cluster counts and comparing their silhouette scores, the same protocol applied to a different
+question ("did we pick the right k?" instead of "did we pick the right features?").
+
+```{r kmeans-silhouette}
+silhouette_by_k <- sapply(2:5, function(k) {
+  km <- kmeans(cluster_features, centers = k, nstart = 20)
+  mean(silhouette(km$cluster, dist(cluster_features))[, 3])
+})
+names(silhouette_by_k) <- 2:5
+print(round(silhouette_by_k, 3))
+
+sil_k3 <- silhouette(kmeans_result$cluster, dist(cluster_features))
+cat("Average silhouette, k = 3:", round(mean(sil_k3[, 3]), 3), "\n")
+```
+
+```{r kmeans-plot}
+ggplot(restaurant_data, aes(x = average_cost_two, y = rating, color = cluster)) +
+  geom_point(size = 3, alpha = 0.8) +
+  labs(title = "k-Means Clustering (k = 3): Restaurant Segments",
+       x = "Average Cost for Two", y = "Rating", color = "Cluster") +
+  theme_minimal()
+```
+
+**Reading the panel:** k = 3 is the best of the four values tried, but at 0.42 it sits below our
+0.50 bar for "clearly separated" segments — cost and rating alone produce clusters that overlap
+more than they're distinct. That's a useful result to know *before* building a marketing plan
+around three crisp restaurant personas: the segments are real but fuzzy, so treat cluster
+boundaries as a starting point for judgment, not a hard rule.
+
+| Metric | Value | Threshold | Status |
+|---|---|---|---|
+| Silhouette, best k (k=3) | 0.42 | ≥ 0.50 | **Flagged** |
+
+---
+
+## Second engine: the same evaluate step, as database aggregate functions
+
+Everything above ran fit/score/evaluate in R, in memory. In production, the same evaluate step
+usually runs as an aggregate query against the platform's database instead of pulling every row
+into R first. `dplyr`'s `group_by()` + `summarise()` grammar is the same grammar `dbplyr` pushes
+down to a live SQL database with zero code changes — this is what "database analytical functions
+to fit, score, and evaluate" looks like in practice: the same protocol, a second engine.
+
+```{r db-style-aggregate}
+restaurant_data$linear_residual <- restaurant_data$estimated_revenue -
+  predict(linear_model, newdata = restaurant_data)
+
+restaurant_data %>%
+  group_by(platform) %>%
+  summarise(
+    n_restaurants = n(),
+    avg_revenue = round(mean(estimated_revenue), 1),
+    avg_abs_error = round(mean(abs(linear_residual)), 1),
+    delivery_rate = round(mean(has_online_delivery), 3),
+    .groups = "drop"
+  )
+
+restaurant_data %>%
+  group_by(price_range) %>%
+  summarise(
+    n_restaurants = n(),
+    delivery_rate = round(mean(has_online_delivery), 3),
+    avg_rating = round(mean(rating), 2),
+    .groups = "drop"
+  )
+```
+
+**Reading the panel:** the platform-level breakdown confirms the linear model's error is stable
+across Zomato and Swiggy (no platform is quietly dragging the average down), and the price-tier
+breakdown shows delivery rate climbing steadily from Budget (40%) to Luxury (88%) — consistent
+with the coefficient logistic regression found, and a sanity check that would take one query to
+re-run against a live production table with no R involved at all.
+
+---
+
+## Summary: every model, one glance
+
+| Model | Metric | Value | Threshold | Status |
+|---|---|---|---|---|
+| Linear Regression | Holdout R² | 0.84 | ≥ 0.60 | **Within threshold** |
+| Linear Regression | Holdout RMSE (% of mean) | ~17% | ≤ 20% | **Within threshold** |
+| Logistic Regression | Holdout AUC | 0.77 | ≥ 0.70 | **Within threshold** |
+| Logistic Regression | Recall, "no delivery" | ~20% | ≥ 50% | **Flagged** |
+| Decision Tree (unpruned) | Train − holdout gap | ~60 pts | ≤ 15 pts | **Flagged** |
+| Decision Tree (pruned) | Train − holdout gap | ~6 pts | ≤ 15 pts | **Within threshold** |
+| k-Means (k=3) | Avg. silhouette | 0.42 | ≥ 0.50 | **Flagged** |
+
+Three of seven checks are flagged — and that's the point of running diagnostics on every model,
+not just the ones that feel shaky. A model can look production-ready on its headline metric and
+still fail a component check that matters more to the business than the headline does.

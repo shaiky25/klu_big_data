@@ -1,0 +1,74 @@
+{
+  "scanner": "scripts",
+  "script": "scan-scripts.py",
+  "version": "2.0.0",
+  "skill_path": "skills/bda-weekly-deliverables",
+  "timestamp": "2026-08-29T13:17:32.157599+00:00",
+  "status": "pass",
+  "findings": [
+    {
+      "file": "scripts/pptx_helpers.py",
+      "line": 1,
+      "severity": "medium",
+      "category": "agentic-design",
+      "title": "No argparse found \u2014 script lacks --help self-documentation",
+      "detail": "",
+      "action": "Add argparse with description and argument help text"
+    },
+    {
+      "file": "scripts/pptx_helpers.py",
+      "line": 1,
+      "severity": "medium",
+      "category": "agentic-design",
+      "title": "No json.dumps found \u2014 output may not be structured JSON",
+      "detail": "",
+      "action": "Use json.dumps for structured output parseable by workflows"
+    },
+    {
+      "file": "scripts/pptx_helpers.py",
+      "line": 1,
+      "severity": "low",
+      "category": "agentic-design",
+      "title": "No sys.exit() calls \u2014 may not return meaningful exit codes",
+      "detail": "",
+      "action": "Return 0=success, 1=fail, 2=error via sys.exit()"
+    }
+  ],
+  "assessments": {
+    "lint_summary": {
+      "tools_used": [],
+      "files_linted": 3,
+      "lint_issues": 0
+    },
+    "script_summary": {
+      "total_scripts": 3,
+      "by_type": {
+        "python": 3,
+        "shell": 0,
+        "node": 0,
+        "other": 0
+      },
+      "scripts": {
+        "python": [
+          "current_topic.py",
+          "lint_deck.py",
+          "pptx_helpers.py"
+        ]
+      },
+      "missing_tests": []
+    }
+  },
+  "summary": {
+    "total_findings": 3,
+    "by_severity": {
+      "critical": 0,
+      "high": 0,
+      "medium": 2,
+      "low": 1
+    },
+    "by_category": {
+      "agentic-design": 3
+    },
+    "assessment": ""
+  }
+}

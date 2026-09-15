@@ -1,0 +1,48 @@
+installation:
+  version: 6.11.0
+  installDate: 2026-08-29T12:07:46.416Z
+  lastUpdated: 2026-08-29T12:07:46.416Z
+modules:
+  - name: core
+    version: 6.11.0
+    installDate: 2026-08-29T12:07:46.184Z
+    lastUpdated: 2026-08-29T12:07:46.409Z
+    source: built-in
+    npmPackage: null
+    repoUrl: null
+  - name: bmm
+    version: 6.11.0
+    installDate: 2026-08-29T12:07:46.276Z
+    lastUpdated: 2026-08-29T12:07:46.409Z
+    source: built-in
+    npmPackage: null
+    repoUrl: null
+  - name: bmb
+    version: v2.2.1
+    installDate: 2026-08-29T12:07:46.329Z
+    lastUpdated: 2026-08-29T12:07:46.411Z
+    source: external
+    npmPackage: bmad-builder
+    repoUrl: https://github.com/bmad-code-org/bmad-builder
+    channel: stable
+    sha: 38df19573f493c5025c7efce331debe8498832c1
+  - name: cis
+    version: v0.3.1
+    installDate: 2026-08-29T12:07:46.345Z
+    lastUpdated: 2026-08-29T12:07:46.413Z
+    source: external
+    npmPackage: bmad-creative-intelligence-suite
+    repoUrl: https://github.com/bmad-code-org/bmad-module-creative-intelligence-suite
+    channel: stable
+    sha: 0e4ff9233a792db1a1cd00f22a482f338168cdc3
+  - name: bmad-loop
+    version: v0.11.1
+    installDate: 2026-08-29T12:07:46.357Z
+    lastUpdated: 2026-08-29T12:07:46.416Z
+    source: external
+    npmPackage: null
+    repoUrl: https://github.com/bmad-code-org/bmad-loop
+    channel: stable
+    sha: bb7cebec4ee4f0fa2783a56ffd0b1b8bc67c4ec5
+ides:
+  - claude-code

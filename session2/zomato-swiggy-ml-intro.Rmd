@@ -1,0 +1,219 @@
+---
+title: "Introduction to Machine Learning: Zomato & Swiggy Case Study"
+output:
+  html_notebook:
+    toc: true
+    theme: flatly
+    highlight: tango
+---
+
+# Introduction
+
+Welcome to your first hands-on Machine Learning (ML) notebook! This notebook is designed for beginners with no prior ML experience. We will use a simulated dataset representing **Zomato and Swiggy** restaurant profiles to explore four foundational machine learning algorithms. 
+
+By using R's intuitive formula syntax (`y ~ x`), we will learn how to:
+1. **Predict continuous numbers** (Linear Regression)
+2. **Classify binary outcomes** (Logistic Regression)
+3. **Build logical decision flowcharts** (Decision Trees)
+4. **Group similar items automatically** (K-Means Clustering)
+
+---
+
+## Step 0: Install and Load Required Packages
+
+We will use three key R packages:
+* `ggplot2` for high-quality data visualizations.
+* `rpart` for building recursive partitioning decision trees.
+* `rpart.plot` for rendering visual decision tree flowcharts.
+
+```{r setup, message=FALSE, warning=FALSE}
+# Install packages if you do not have them:
+# install.packages("rpart")
+# install.packages("rpart.plot")
+# install.packages("ggplot2")
+
+library(rpart)
+library(rpart.plot)
+library(ggplot2)
+
+# Set seed for reproducibility so we all get the exact same results
+set.seed(42)
+```
+
+---
+
+## Step 1: Create the Synthetic Dataset
+
+To ensure this notebook runs instantly without troubleshooting external file paths or missing CSVs, we will programmatically generate a dataset of 200 restaurants mimicking real-world Zomato and Swiggy features:
+* `average_cost_two`: Cost for two diners (ranging from 150 to 2500 INR).
+* `distance_center_km`: Distance from the city center (0.5 to 15 km).
+* `rating`: Average customer rating (1.5 to 4.9 stars).
+* `votes`: Number of reviews/ratings submitted by customers.
+
+We will inject realistic business logic so our models can discover true patterns:
+1. **Linear Relationship**: Revenue increases with more votes and higher food costs, but decreases with distance.
+2. **Binary Relationship**: Premium/expensive restaurants are much more likely to offer online delivery.
+3. **Non-linear Tiering**: Price categories are bounded by specific cost brackets.
+
+```{r generate_data}
+n_restaurants <- 200
+
+restaurant_data <- data.frame(
+  restaurant_id = 1:n_restaurants,
+  platform = sample(c("Zomato", "Swiggy"), n_restaurants, replace = TRUE),
+  average_cost_two = round(runif(n_restaurants, min = 150, max = 2500)),
+  distance_center_km = round(runif(n_restaurants, min = 0.5, max = 15), 1),
+  rating = round(runif(n_restaurants, min = 1.5, max = 4.9), 1),
+  votes = round(runif(n_restaurants, min = 10, max = 1500))
+)
+
+# 1. Generate revenue (Continuous variable)
+restaurant_data$estimated_revenue <- round(
+  (restaurant_data$votes * 1.5) + 
+  (restaurant_data$average_cost_two * 0.4) - 
+  (restaurant_data$distance_center_km * 50) + 
+  rnorm(n_restaurants, mean = 500, sd = 100)
+)
+# Force minimum revenue to be 100 INR
+restaurant_data$estimated_revenue[restaurant_data$estimated_revenue < 100] <- 100
+
+# 2. Generate online delivery status (Binary 1/0 variable using sigmoid probability)
+prob_delivery <- 1 / (1 + exp(-(-1 + 0.0015 * restaurant_data$average_cost_two)))
+restaurant_data$has_online_delivery <- rbinom(n_restaurants, 1, prob_delivery)
+
+# 3. Categorize price range (Multi-class factor)
+restaurant_data$price_range <- factor(cut(restaurant_data$average_cost_two, 
+                                   breaks = c(0, 400, 800, 1500, Inf), 
+                                   labels = c("Budget", "Moderate", "Premium", "Luxury")))
+
+# Preview the data
+head(restaurant_data)
+```
+
+---
+
+## Section 1: Linear Regression (Predicting a Continuous Number)
+
+### The Concept
+Linear Regression finds a straight-line relationship between one or more input variables (features) and a numeric output (target). It aims to find the line that minimizes the total prediction error (residuals).
+
+### Our Goal
+Predict a restaurant's **Estimated Monthly Revenue** based on its distance from the city center and customer votes.
+
+```{r linear_regression}
+# formula syntax: target ~ feature_1 + feature_2
+linear_model <- lm(estimated_revenue ~ distance_center_km + votes, data = restaurant_data)
+
+# Review model statistics
+summary(linear_model)
+```
+
+### Visualizing the Fit
+Let's plot how estimated revenue scales with customer votes, color-coded by distance:
+
+```{r plot_linear}
+ggplot(restaurant_data, aes(x = votes, y = estimated_revenue, color = distance_center_km)) +
+  geom_point(alpha = 0.7, size = 2) +
+  geom_smooth(method = "lm", col = "red", se = FALSE, size = 1.2) +
+  labs(title = "Linear Regression: Revenue vs. Votes",
+       x = "Number of Votes (Popularity)",
+       y = "Estimated Monthly Revenue (INR)",
+       color = "Distance (KM)") +
+  theme_minimal()
+```
+
+---
+
+## Section 2: Logistic Regression (Predicting a Binary Classification)
+
+### The Concept
+When we want to predict a binary category (Yes/No, 1/0), standard linear regression fails because it can predict numbers below 0 or above 1. **Logistic Regression** solves this by wrapping the linear equation in a **Sigmoid function**, mapping any input into a probability between 0% and 100%.
+
+### Our Goal
+Predict whether a restaurant **offers online delivery** (`has_online_delivery`) based on its average cost for two and its rating.
+
+```{r logistic_regression}
+# glm() with family = binomial specifies a logistic regression model
+logistic_model <- glm(has_online_delivery ~ average_cost_two + rating, 
+                      data = restaurant_data, 
+                      family = binomial)
+
+# Review model statistics
+summary(logistic_model)
+```
+
+---
+
+## Section 3: Decision Trees (Flowchart-Based Rules)
+
+### The Concept
+Instead of mathematical lines or probabilities, a **Decision Tree** splits data step-by-step using a series of logical "If-Else" rules. It selects features that divide the data into groups that are as pure (homogenous) as possible, measuring success via metrics like **Gini Impurity** or **Entropy**.
+
+### Our Goal
+Classify a restaurant's pricing tier (`price_range`: Budget, Moderate, Premium, Luxury) based on its average cost, platform, and rating.
+
+```{r decision_tree}
+# Build the classification tree
+tree_model <- rpart(price_range ~ average_cost_two + rating + platform, 
+                    data = restaurant_data, 
+                    method = "class")
+
+# Plot the visual decision tree flowchart
+rpart.plot(tree_model, 
+           type = 2, 
+           extra = 104, 
+           under = TRUE, 
+           fallen.leaves = TRUE, 
+           main = "Decision Tree: Classifying Price Range Tier")
+```
+
+---
+
+## Section 4: K-Means Clustering (Unsupervised Grouping)
+
+### The Concept
+Unlike the previous three models (which are **Supervised Learning** because they had correct target answers to train on), **K-Means Clustering** is **Unsupervised**. It does not know any correct labels; instead, it automatically groups similar restaurants together in space based on how physically close their features are.
+
+*Note: We must use the `scale()` function first. Because average cost is measured in thousands (150 - 2500) and ratings in single digits (1.5 - 4.9), the cost feature would mathematically overwhelm the rating feature during distance calculations if they aren't standardized to the same scale.*
+
+### Our Goal
+Group our restaurants into 3 distinct marketing segments based on their average cost and rating.
+
+```{r kmeans_clustering}
+# Scale/standardize features to give them equal mathematical weight
+cluster_features <- scale(restaurant_data[, c("average_cost_two", "rating")])
+
+# Run K-means clustering to find 3 centers
+kmeans_result <- kmeans(cluster_features, centers = 3, nstart = 20)
+
+# Append the discovered cluster assignments back to our main dataset
+restaurant_data$cluster <- factor(kmeans_result$cluster)
+
+# Let's inspect the cluster centers on original scale values
+aggregate(restaurant_data[, c("average_cost_two", "rating")], 
+          by = list(Cluster = restaurant_data$cluster), 
+          FUN = mean)
+```
+
+### Visualizing the Discovered Clusters
+Let's chart the 3 natural marketing groups identified by the algorithm:
+
+```{r plot_clusters}
+ggplot(restaurant_data, aes(x = average_cost_two, y = rating, color = cluster)) +
+  geom_point(size = 3, alpha = 0.8) +
+  labs(title = "K-Means Clustering: Identifying 3 Restaurant Segments",
+       x = "Average Cost for Two (INR)",
+       y = "Customer Rating (Stars)",
+       color = "Discovered Cluster") +
+  theme_minimal()
+```
+
+---
+
+## Summary for Students
+
+| Aspect | Supervised Models (Linear/Logistic/Trees) | Unsupervised Models (K-Means) |
+| :--- | :--- | :--- |
+| **Data Requirements** | Requires historical inputs **and** correct labels ($y$) | Only requires inputs; discovers structure on its own |
+| **Typical Goal** | Predicting a numeric value or assigning a category | Grouping similar points together to find patterns |
+| **Real-world Use Case** | Estimating food delivery time or predicting order volume | Segmenting customers into spending behavior groups |

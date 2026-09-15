@@ -1,0 +1,10 @@
+uv
+numpy
+scikit-learn
+xgboost 
+torch
+python-pptx
+defusedxml
+Pillow
+kagglehub
+pandas

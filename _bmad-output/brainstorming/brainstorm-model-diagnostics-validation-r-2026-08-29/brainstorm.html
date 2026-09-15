@@ -1,0 +1,624 @@
+<title>Diagnostics Chart</title>
+<style>
+  :root{
+    --paper:#eef5ee;
+    --paper-alt:#e2ede2;
+    --card:#ffffff;
+    --ink:#17302a;
+    --ink-soft:#4a655c;
+    --line:#b9cfc2;
+    --line-soft:#d3e2d8;
+    --red:#c8443a;
+    --red-soft:#f6e1de;
+    --green:#2f8f62;
+    --green-soft:#e0f0e6;
+    --coral:#d9536e;
+    --coral-soft:#fbe2e7;
+    --gold:#a8792a;
+    --shadow: 0 1px 2px rgba(23,48,42,.06), 0 8px 24px -12px rgba(23,48,42,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0e1d19;
+      --paper-alt:#142722;
+      --card:#122621;
+      --ink:#e9f2ec;
+      --ink-soft:#a9c4b8;
+      --line:#24433a;
+      --line-soft:#1b332c;
+      --red:#e2665c;
+      --red-soft:#2c1917;
+      --green:#57c493;
+      --green-soft:#122a20;
+      --coral:#ef7f95;
+      --coral-soft:#2b1820;
+      --gold:#d9ab5c;
+      --shadow: 0 1px 2px rgba(0,0,0,.35), 0 12px 30px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0e1d19;
+    --paper-alt:#142722;
+    --card:#122621;
+    --ink:#e9f2ec;
+    --ink-soft:#a9c4b8;
+    --line:#24433a;
+    --line-soft:#1b332c;
+    --red:#e2665c;
+    --red-soft:#2c1917;
+    --green:#57c493;
+    --green-soft:#122a20;
+    --coral:#ef7f95;
+    --coral-soft:#2b1820;
+    --gold:#d9ab5c;
+    --shadow: 0 1px 2px rgba(0,0,0,.35), 0 12px 30px -14px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;
+    background:
+      repeating-linear-gradient(to bottom, transparent 0 27px, var(--line-soft) 27px 28px),
+      var(--paper);
+    color:var(--ink);
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    line-height:1.55;
+    overflow-x:hidden;
+  }
+  .mono{
+    font-family: ui-monospace, "SF Mono", "Menlo", "Consolas", "Roboto Mono", monospace;
+  }
+  .serif{
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, "Times New Roman", serif;
+  }
+
+  .binder{
+    max-width:860px;
+    margin:0 auto;
+    padding: 0 20px 90px;
+  }
+
+  /* ===== HERO / CHART COVER ===== */
+  .cover{
+    margin-top:34px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:var(--shadow);
+    padding:34px 30px 30px;
+    position:relative;
+    overflow:hidden;
+  }
+  .cover::before{
+    content:"";
+    position:absolute; top:0; left:0; right:0; height:8px;
+    background: repeating-linear-gradient(135deg, var(--red) 0 10px, var(--card) 10px 20px);
+    opacity:.85;
+  }
+  .clip{
+    position:absolute; top:-14px; left:50%; transform:translateX(-50%);
+    width:64px; height:26px;
+    background: linear-gradient(180deg, var(--ink-soft), var(--ink));
+    border-radius:6px;
+    box-shadow: 0 3px 6px rgba(0,0,0,.25);
+  }
+  .clip::after{
+    content:""; position:absolute; left:50%; top:8px; transform:translateX(-50%);
+    width:34px; height:10px; border-radius:5px; background:var(--paper);
+  }
+  .kicker{
+    display:flex; align-items:center; gap:10px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size:.72rem; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-top:14px;
+  }
+  .kicker .cross{
+    width:16px;height:16px; position:relative; flex:none;
+  }
+  .kicker .cross::before, .kicker .cross::after{
+    content:""; position:absolute; background:var(--red); border-radius:1px;
+  }
+  .kicker .cross::before{ left:6px; top:0; width:4px; height:16px; }
+  .kicker .cross::after{ top:6px; left:0; width:16px; height:4px; }
+
+  h1.title{
+    font-family: Georgia, "Iowan Old Style", Palatino, serif;
+    font-weight:700;
+    font-size: clamp(1.7rem, 4.4vw, 2.5rem);
+    line-height:1.15;
+    margin: 10px 0 4px;
+    text-wrap:balance;
+    letter-spacing:-.01em;
+  }
+  .subtitle{
+    color:var(--ink-soft);
+    font-size:1rem;
+    max-width:56ch;
+    margin: 0 0 20px;
+  }
+
+  .vitals{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px,1fr));
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+    border-radius:10px;
+    overflow:hidden;
+    margin-top:6px;
+  }
+  .vital{
+    background:var(--card);
+    padding:12px 14px;
+  }
+  .vital .label{
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size:.65rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .vital .value{
+    font-family: Georgia, serif;
+    font-size:1rem;
+    margin-top:3px;
+  }
+  .vital .value.status{
+    color:var(--green); font-weight:700;
+  }
+
+  /* ===== SECTION SCAFFOLDING ===== */
+  .tab{
+    display:inline-flex; align-items:center; gap:8px;
+    margin: 52px 0 14px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size:.72rem; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--card);
+    background:var(--ink);
+    padding:6px 12px 6px 10px;
+    border-radius: 3px 10px 10px 3px;
+  }
+  .tab .n{
+    background:var(--paper); color:var(--ink);
+    width:18px; height:18px; border-radius:50%;
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:.66rem; font-weight:700;
+  }
+  h2.section-title{
+    font-family: Georgia, "Iowan Old Style", Palatino, serif;
+    font-size: clamp(1.35rem, 3.4vw, 1.85rem);
+    margin: 0 0 6px;
+    text-wrap:balance;
+  }
+  p.section-lede{
+    color:var(--ink-soft);
+    max-width:64ch;
+    margin: 0 0 22px;
+  }
+
+  .stitches{
+    border:0; height:0;
+    border-top: 2px dashed var(--line);
+    margin: 48px 0 0;
+  }
+
+  /* ===== SECTION 1 : LAB PANEL ===== */
+  .panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    box-shadow:var(--shadow);
+    padding:22px 22px 8px;
+  }
+  .panel-head{
+    display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap;
+    border-bottom:1px solid var(--line);
+    padding-bottom:12px; margin-bottom:16px;
+  }
+  .panel-head .name{ font-family:Georgia,serif; font-weight:700; font-size:1.05rem; }
+  .panel-head .refno{ font-family: ui-monospace, monospace; font-size:.72rem; color:var(--ink-soft); }
+
+  .results{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap:14px;
+    padding-bottom:20px;
+  }
+  .result{
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px 16px;
+    background: var(--paper-alt);
+    position:relative;
+  }
+  .result .rhead{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:6px;
+  }
+  .result .rname{ font-weight:700; font-size:.92rem; }
+  .flag{
+    font-family: ui-monospace, monospace;
+    font-size:.62rem; letter-spacing:.08em; text-transform:uppercase;
+    padding:3px 8px; border-radius:20px; font-weight:700;
+    white-space:nowrap;
+  }
+  .flag.ok{ background:var(--green-soft); color:var(--green); }
+  .flag.warn{ background:var(--red-soft); color:var(--red); }
+  .result p{ margin:0; font-size:.87rem; color:var(--ink-soft); }
+  .result .analogy{
+    margin-top:8px; padding-top:8px; border-top:1px dashed var(--line);
+    font-size:.82rem; font-style:italic; color:var(--ink);
+  }
+
+  .footnote-row{
+    display:flex; gap:14px; flex-wrap:wrap;
+    padding: 14px 0 18px;
+    border-top: 1px solid var(--line);
+    margin-top:4px;
+  }
+  .footnote{
+    flex:1; min-width:220px;
+    font-size:.85rem; color:var(--ink-soft);
+  }
+  .footnote b{ color:var(--ink); }
+
+  /* ===== SECTION 2 : CASE FILES ===== */
+  .cases{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px,1fr));
+    gap:20px;
+  }
+  .case{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+    transform: rotate(var(--tilt,0deg));
+    transition: transform .2s ease;
+  }
+  .case:hover{ transform: rotate(0deg); }
+  .case.a{ --tilt:-1.1deg; }
+  .case.b{ --tilt:1.1deg; }
+  .case-band{
+    padding:10px 18px;
+    font-family: ui-monospace, monospace;
+    font-size:.68rem; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--card);
+  }
+  .case.a .case-band{ background:var(--coral); }
+  .case.b .case-band{ background:var(--gold); }
+  .case-body{ padding:18px 18px 20px; }
+  .case-name{
+    font-family:Georgia,serif; font-weight:700; font-size:1.2rem;
+    margin:0 0 2px;
+  }
+  .case-diag{
+    font-size:.85rem; color:var(--ink-soft); margin:0 0 14px;
+    font-style:italic;
+  }
+  .quote{
+    background:var(--paper-alt);
+    border-left:3px solid var(--coral);
+    border-radius:0 8px 8px 0;
+    padding:10px 14px;
+    font-size:.95rem;
+    margin:0 0 14px;
+  }
+  .case.b .quote{ border-left-color:var(--gold); }
+  .rx{
+    display:flex; gap:10px; align-items:flex-start;
+    background:var(--card);
+    border:1px dashed var(--line);
+    border-radius:8px;
+    padding:10px 12px;
+    font-size:.83rem;
+  }
+  .rx .rx-symbol{
+    font-family:Georgia,serif; font-weight:700; font-size:1.1rem; color:var(--ink-soft);
+    line-height:1;
+  }
+
+  /* ===== MoSCoW insert ===== */
+  .form{
+    margin-top:26px;
+    background:var(--paper-alt);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:18px 20px;
+  }
+  .form-title{
+    font-family: ui-monospace, monospace;
+    font-size:.7rem; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:12px;
+  }
+  .checks{ display:grid; gap:9px; }
+  .check{
+    display:grid; grid-template-columns: 20px auto 1fr; gap:10px; align-items:start;
+    font-size:.87rem;
+  }
+  .check .box{
+    width:16px; height:16px; margin-top:2px;
+    border:2px solid var(--ink-soft); border-radius:3px;
+    position:relative; flex:none;
+  }
+  .check.done .box{ border-color:var(--green); background:var(--green-soft); }
+  .check.done .box::after{
+    content:""; position:absolute; left:2px; top:-1px;
+    width:8px; height:5px; border-left:2px solid var(--green); border-bottom:2px solid var(--green);
+    transform:rotate(-45deg);
+  }
+  .check.skip .box{ border-color:var(--red); background:var(--red-soft); }
+  .check.skip .box::after{
+    content:"×"; position:absolute; left:2px; top:-4px; color:var(--red); font-weight:700; font-size:.85rem;
+  }
+  .check .tag{
+    font-family: ui-monospace, monospace; font-size:.68rem; letter-spacing:.08em;
+    font-weight:700; color:var(--ink-soft); white-space:nowrap;
+  }
+  .check.done .tag{ color:var(--green); }
+  .check.skip .tag{ color:var(--red); }
+
+  /* ===== SYNTHESIS / DISCHARGE ===== */
+  .discharge{
+    margin-top:56px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    padding:32px 28px 30px;
+    position:relative;
+    overflow:hidden;
+  }
+  .discharge::before{
+    content:"";
+    position:absolute; inset:0;
+    background:
+      repeating-linear-gradient(to bottom, transparent 0 26px, var(--line-soft) 26px 27px);
+    opacity:.5; pointer-events:none;
+  }
+  .discharge > *{ position:relative; }
+  .discharge .tab{ margin-top:0; }
+
+  .stamp{
+    position:absolute; top:26px; right:28px;
+    border:3px solid var(--green);
+    color:var(--green);
+    font-family: ui-monospace, monospace;
+    font-weight:700; font-size:.72rem; letter-spacing:.1em;
+    text-transform:uppercase;
+    padding:8px 12px;
+    border-radius:8px;
+    transform: rotate(8deg);
+    opacity:.9;
+  }
+
+  .protocol{
+    margin: 22px 0 8px;
+    border:1px solid var(--line);
+    border-radius:12px;
+    background:var(--paper-alt);
+    padding: 18px 18px 14px;
+    overflow-x:auto;
+  }
+  .track{
+    display:flex; align-items:center; gap:0;
+    min-width:560px;
+    margin-bottom: 6px;
+  }
+  .track:last-of-type{ margin-bottom:0; }
+  .track .runner{
+    font-family: ui-monospace, monospace;
+    font-size:.68rem; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--ink-soft);
+    width:112px; flex:none;
+  }
+  .pulse-wrap{ flex:1; }
+  .pulse-svg{ display:block; width:100%; height:46px; }
+  .pulse-path{
+    fill:none; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round;
+  }
+  .track.r .pulse-path{ stroke:var(--green); }
+  .track.db .pulse-path{ stroke:var(--gold); }
+  .steps-row{
+    display:flex; min-width:560px;
+    font-family: ui-monospace, monospace;
+    font-size:.62rem; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-left:112px;
+    padding-top:2px;
+  }
+  .steps-row span{ flex:1; text-align:center; }
+  .converge{
+    text-align:center;
+    font-family: ui-monospace, monospace;
+    font-size:.7rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink);
+    margin-top:14px; padding-top:12px; border-top:1px dashed var(--line);
+  }
+  .converge b{ color:var(--green); }
+
+  @media (prefers-reduced-motion: no-preference){
+    .pulse-path{
+      stroke-dasharray: 6 4;
+      animation: dash 3.4s linear infinite;
+    }
+    .track.db .pulse-path{ animation-duration: 3.9s; }
+  }
+  @keyframes dash{ to{ stroke-dashoffset: -100; } }
+
+  .hooks{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px,1fr));
+    gap:14px;
+    margin: 20px 0 6px;
+  }
+  .hook{
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 14px;
+    background:var(--paper-alt);
+    display:flex; gap:12px; align-items:flex-start;
+  }
+  .hook .dot{
+    width:10px; height:10px; border-radius:50%; margin-top:5px; flex:none;
+  }
+  .hook.a .dot{ background:var(--coral); }
+  .hook.b .dot{ background:var(--gold); }
+  .hook b{ display:block; font-size:.9rem; }
+  .hook span{ font-size:.83rem; color:var(--ink-soft); }
+
+  .closing-line{
+    margin-top:22px;
+    padding-top:18px;
+    border-top:1px solid var(--line);
+    font-size:.9rem; color:var(--ink-soft);
+  }
+  .closing-line b{ color:var(--ink); }
+
+  .colophon{
+    text-align:center;
+    font-family: ui-monospace, monospace;
+    font-size:.7rem; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-top:40px;
+  }
+
+  a{ color:inherit; }
+  ::selection{ background:var(--coral-soft); color:var(--ink); }
+</style>
+
+<div class="binder">
+
+  <header class="cover">
+    <div class="clip" aria-hidden="true"></div>
+    <div class="kicker"><span class="cross" aria-hidden="true"></span> Brainstorm Chart — Session Complete</div>
+    <h1 class="title">Model Diagnostics &amp; Validation, Explained Like a Blood Test</h1>
+    <p class="subtitle">Designing a 2-hour R webinar for non-programmer undergrads — how a facilitated brainstorm turned "diagnose your model" into a doctor's office, and overfitting into a kid who memorized instead of learning.</p>
+
+    <div class="vitals">
+      <div class="vital"><div class="label">Session Date</div><div class="value">29 Aug 2026</div></div>
+      <div class="vital"><div class="label">Mode</div><div class="value">Facilitator</div></div>
+      <div class="vital"><div class="label">Techniques Run</div><div class="value">2</div></div>
+      <div class="vital"><div class="label">Status</div><div class="value status">Complete ✓</div></div>
+    </div>
+  </header>
+
+  <!-- ================= SECTION 1 ================= -->
+  <div class="tab"><span class="n">1</span> Technique — Analogical Thinking</div>
+  <h2 class="section-title">The Blood Test Panel</h2>
+  <p class="section-lede">The session's founding move: treat model diagnostics as a check-up. A dataset walks in, the model runs its panel, and every metric comes back with a flag. Three ideas fell out of chasing that one analogy.</p>
+
+  <div class="panel">
+    <div class="panel-head">
+      <span class="name">Lab Report — Diagnostic Panel</span>
+      <span class="refno mono">REF// analogical-thinking</span>
+    </div>
+    <div class="results">
+      <div class="result">
+        <div class="rhead"><span class="rname">Diagnostic Metric</span><span class="flag warn">Flagged</span></div>
+        <p>Each metric is rendered as its own lab-result card. A red flag / warning icon fires when it fails threshold; green when it's within normal range.</p>
+        <div class="analogy">"Your R² came back a little low, Doctor."</div>
+      </div>
+      <div class="result">
+        <div class="rhead"><span class="rname">Second Opinion</span><span class="flag ok">Normal</span></div>
+        <p>Cross-validation, reframed: re-running the model on a holdout set is asking another doctor to confirm the first diagnosis before anyone panics.</p>
+        <div class="analogy">Same patient, unseen data, same verdict?</div>
+      </div>
+      <div class="result">
+        <div class="rhead"><span class="rname">The Lab Machine</span><span class="flag ok">Calibrated</span></div>
+        <p>The R program — or the database analytical function — <em>is</em> the machine. Dataset goes in one end; the standard fit → score → evaluate protocol runs every time.</p>
+        <div class="analogy">Same machine, every patient, no exceptions.</div>
+      </div>
+    </div>
+    <div class="footnote-row">
+      <div class="footnote"><b>Direction noted:</b> students should grasp the visual result even without following the R code — so the code carries plain-English, self-explanatory comments, not clever idioms.</div>
+      <div class="footnote"><b>Direction noted:</b> the audience has zero prior R experience — the walkthrough assumes nothing, not even "programmer-adjacent."</div>
+    </div>
+  </div>
+
+  <hr class="stitches" />
+
+  <!-- ================= SECTION 2 ================= -->
+  <div class="tab"><span class="n">2</span> Technique — Inner Child Conference</div>
+  <h2 class="section-title">The Patient Case Files</h2>
+  <p class="section-lede">The second technique gave the failure modes a childhood. A bad model isn't "wrong" — it's <em>sick</em>: it caught bad data like germs, or it grew up with one of two familiar habits.</p>
+
+  <div class="cases">
+    <div class="case a">
+      <div class="case-band">Case File · Overfitting</div>
+      <div class="case-body">
+        <p class="case-name">The Kid Who Memorized</p>
+        <p class="case-diag">Diagnosis: aced the practice test, bombed the real one.</p>
+        <div class="quote">"I memorized instead of learning."</div>
+        <div class="rx">
+          <span class="rx-symbol">℞</span>
+          <span>Cure: fresh, unseen practice data — force the model to actually generalize instead of reciting the answer key.</span>
+        </div>
+      </div>
+    </div>
+    <div class="case b">
+      <div class="case-band">Case File · Underfitting</div>
+      <div class="case-body">
+        <p class="case-name">The Kid Who Wasn't Paying Attention</p>
+        <p class="case-diag">Diagnosis: too lazy or inattentive to notice the pattern in the room.</p>
+        <div class="quote">"I wasn't paying attention."</div>
+        <div class="rx">
+          <span class="rx-symbol">℞</span>
+          <span>Cure: more parameters and variables to actually attend to — give the model something worth noticing.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form">
+    <div class="form-title mono">Insert · Scope Authorization (MoSCoW)</div>
+    <div class="checks">
+      <div class="check done"><span class="box"></span><span class="tag">MUST</span><span>Presentation covering the week's topic in detail — every idea above included, light-touch (1–2 examples each), diagnostics spanning multiple common ML models.</span></div>
+      <div class="check done"><span class="box"></span><span class="tag">SHOULD</span><span>Visualizations and code snapshots with results embedded directly in the slides.</span></div>
+      <div class="check done"><span class="box"></span><span class="tag">COULD</span><span>Further-reading references for students who want to go deeper.</span></div>
+      <div class="check skip"><span class="box"></span><span class="tag">WON'T</span><span>A long, deep-dive deck — capped at 15–20 slides.</span></div>
+    </div>
+  </div>
+
+  <!-- ================= SYNTHESIS ================= -->
+  <div class="discharge">
+    <div class="stamp">Discharged ✓</div>
+    <div class="tab"><span class="n">3</span> Synthesis — Chosen Direction</div>
+    <h2 class="section-title">Discharge Summary</h2>
+    <p class="section-lede">Everything converged on one chart: the blood-test panel is the frame for the whole diagnostics section, the two case files are the memorable hook, and underneath both, one protocol runs twice.</p>
+
+    <div class="protocol">
+      <div class="track r">
+        <span class="runner mono">R · local</span>
+        <div class="pulse-wrap">
+          <svg viewBox="0 0 560 46" class="pulse-svg" preserveAspectRatio="none" aria-hidden="true">
+            <path class="pulse-path" d="M0,23 L70,23 L90,6 L110,40 L130,23 L220,23 L240,6 L260,40 L280,23 L370,23 L390,6 L410,40 L430,23 L560,23" />
+          </svg>
+        </div>
+      </div>
+      <div class="steps-row"><span>fit</span><span>score</span><span>evaluate</span></div>
+      <div class="track db">
+        <span class="runner mono">DB · function</span>
+        <div class="pulse-wrap">
+          <svg viewBox="0 0 560 46" class="pulse-svg" preserveAspectRatio="none" aria-hidden="true">
+            <path class="pulse-path" d="M0,23 L70,23 L90,6 L110,40 L130,23 L220,23 L240,6 L260,40 L280,23 L370,23 L390,6 L410,40 L430,23 L560,23" />
+          </svg>
+        </div>
+      </div>
+      <div class="steps-row"><span>fit</span><span>score</span><span>evaluate</span></div>
+      <div class="converge">Two machines, one protocol — run twice, read as <b>one demo beat</b></div>
+    </div>
+
+    <div class="hooks">
+      <div class="hook a"><span class="dot"></span><div><b>Memory hook, case A</b><span>Overfitting = memorized instead of learned. Cure: unseen data.</span></div></div>
+      <div class="hook b"><span class="dot"></span><div><b>Memory hook, case B</b><span>Underfitting = wasn't paying attention. Cure: more to attend to.</span></div></div>
+    </div>
+
+    <p class="closing-line"><b>Chosen direction:</b> the blood-test-panel framing drives the whole diagnostics section — lab-result cards, red/green flags. Overfitting and underfitting are personified as illness, with kid-simple one-liners as the memorable hook. Fit → score → evaluate is shown as one repeatable protocol, run twice — R locally, then a database analytical function — unifying cross-validation and DB-analytics into a single demo. Deck: 15–20 slides, all ideas must-have but light-touch, viz + code should-have, further reading could-have, walkthrough spanning multiple common ML models.</p>
+  </div>
+
+  <div class="colophon">Brainstorm keepsake · Analogical Thinking + Inner Child Conference · 29 Aug 2026</div>
+
+</div>

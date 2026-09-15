@@ -1,0 +1,118 @@
+{
+  "scanner": "prompt-metrics-prepass",
+  "script": "prepass-prompt-metrics.py",
+  "version": "2.0.0",
+  "skill_path": "skills/bda-weekly-deliverables",
+  "timestamp": "2026-08-29T13:17:31.439167+00:00",
+  "budgets": {
+    "skill_md_tokens": [
+      1500,
+      2500
+    ],
+    "multi_branch_reference_tokens": 4500,
+    "single_purpose_reference_tokens": 9000
+  },
+  "skill_md": {
+    "tokens": 1291,
+    "token_method": "tiktoken",
+    "section_count": 7,
+    "frontmatter": {
+      "name": "bda-weekly-deliverables",
+      "description": "Generates this week's class PDF, deck, and R Markdown. Use when user says \"build this week's deliverables\", \"generate the class materials\", or \"make this week's deck/PDF/Rmd\".",
+      "description_chars": 175,
+      "description_has_angle_brackets": false,
+      "keys": [
+        "description",
+        "name"
+      ]
+    }
+  },
+  "aggregate": {
+    "total_files_scanned": 2,
+    "total_tokens": 2362,
+    "total_waste_patterns": 0,
+    "total_back_references": 0,
+    "files_with_numbered_prefix": 0
+  },
+  "reference_sizes": {},
+  "files": [
+    {
+      "file": "SKILL.md",
+      "tokens": 1291,
+      "token_method": "tiktoken",
+      "sections": [
+        {
+          "level": 2,
+          "title": "Resolution rules"
+        },
+        {
+          "level": 2,
+          "title": "Determine the week and its content brief"
+        },
+        {
+          "level": 2,
+          "title": "Voice, register, and constraints \u2014 every week"
+        },
+        {
+          "level": 2,
+          "title": "Running dataset"
+        },
+        {
+          "level": 2,
+          "title": "Build the three deliverables"
+        },
+        {
+          "level": 2,
+          "title": "Modes"
+        },
+        {
+          "level": 2,
+          "title": "Known gap"
+        }
+      ],
+      "table_count": 0,
+      "table_rows": 0,
+      "fenced_block_count": 0,
+      "allcaps_directive_count": 0,
+      "numbered_prefix_filename": false,
+      "waste_patterns": [],
+      "back_references": [],
+      "frontmatter": {
+        "name": "bda-weekly-deliverables",
+        "description": "Generates this week's class PDF, deck, and R Markdown. Use when user says \"build this week's deliverables\", \"generate the class materials\", or \"make this week's deck/PDF/Rmd\".",
+        "description_chars": 175,
+        "description_has_angle_brackets": false,
+        "keys": [
+          "description",
+          "name"
+        ]
+      },
+      "is_skill_md": true
+    },
+    {
+      "file": ".memlog.md",
+      "tokens": 1071,
+      "token_method": "tiktoken",
+      "sections": [],
+      "table_count": 0,
+      "table_rows": 0,
+      "fenced_block_count": 0,
+      "allcaps_directive_count": 0,
+      "numbered_prefix_filename": false,
+      "waste_patterns": [],
+      "back_references": [],
+      "frontmatter": {
+        "name": "",
+        "description": "",
+        "description_chars": 0,
+        "description_has_angle_brackets": false,
+        "keys": [
+          "goal",
+          "topic",
+          "updated"
+        ]
+      },
+      "is_skill_md": false
+    }
+  ]
+}

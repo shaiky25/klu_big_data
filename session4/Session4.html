@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Telecom Churn Analytics in R</title>
+  <style>
+    :root {
+      --bg: #e4e6ed;
+      --card-bg: #0e599f;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-green: #4ade80;
+      --accent-red: #f87171;
+      --accent-amber: #fbbf24;
+      --code-bg: #090d16;
+      --border: #334155;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Deck Layout */
+    .deck-container {
+      flex: 1;
+      display: flex;
+      position: relative;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .slide {
+      display: none;
+      width: 100%;
+      max-width: 1150px;
+      height: 85vh;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2.5rem 3rem;
+      flex-direction: column;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    .slide.active { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Typography */
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      width: fit-content;
+    }
+
+    h2 { font-size: 1.85rem; font-weight: 700; margin-bottom: 0.4rem; }
+    p.subtitle { color: var(--text-muted); font-size: 1rem; margin-bottom: 1.5rem; }
+
+    /* Content Grids */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .panel {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .panel-header {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.4rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Code & Output */
+    pre {
+      font-family: "Fira Code", Consolas, Monaco, monospace;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: #e2e8f0;
+      white-space: pre-wrap;
+    }
+
+    .kw { color: #f472b6; font-weight: bold; }
+    .fn { color: #38bdf8; }
+    .str { color: #a3e635; }
+    .cm { color: #64748b; font-style: italic; }
+    .num { color: #fb923c; }
+    .hl { background: rgba(251, 191, 36, 0.2); padding: 0 4px; border-radius: 2px; }
+
+    /* Callout & Notes */
+    .callout {
+      background: rgba(56, 189, 248, 0.08);
+      border-left: 4px solid var(--accent);
+      padding: 0.9rem 1.1rem;
+      border-radius: 0 6px 6px 0;
+      font-size: 0.9rem;
+      margin-top: 1rem;
+      line-height: 1.45;
+    }
+
+    .callout-title { font-weight: bold; color: var(--accent); margin-bottom: 0.3rem; }
+
+    /* Comparison Table */
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 0.5rem; }
+    th, td { padding: 0.7rem 0.8rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th { color: var(--accent); font-weight: 600; background: rgba(255,255,255,0.02); }
+
+    /* Controls Bar */
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 3rem;
+      background: #0b1120;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn {
+      background: var(--border);
+      color: var(--text-main);
+      border: none;
+      padding: 0.5rem 1.25rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: background 0.15s;
+    }
+
+    .btn:hover { background: #475569; }
+    .counter { color: var(--text-muted); font-size: 0.9rem; font-weight: 500; }
+  </style>
+</head>
+<body>
+
+<div class="deck-container">
+
+  <!-- SLIDE 1 -->
+  <div class="slide active">
+    <span class="badge">Slide 1 / Concept Setup</span>
+    <h2>Predicting Churn: Linear vs. Logistic Regression</h2>
+    <p class="subtitle">Why we cannot use standard linear regression for binary (Yes/No) business decisions.</p>
+    
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header"><span>Linear Regression (<code>lm()</code>)</span><span style="color: var(--accent-red);">❌ Incorrect</span></div>
+        <p style="font-size: 0.9rem; line-height: 1.5; margin-bottom: 1rem;">
+          <strong>Equation:</strong> <span style="font-family: monospace;">Y = β₀ + β₁X</span>
+        </p>
+        <ul style="font-size: 0.85rem; line-height: 1.6; color: #cbd5e1; padding-left: 1.2rem;">
+          <li>Predicts unbounded values from <span style="font-family: monospace;">-∞</span> to <span style="font-family: monospace;">+∞</span>.</li>
+          <li>Can output impossible probabilities (e.g. <strong>132%</strong> churn risk or <strong>-15%</strong> chance).</li>
+          <li>Violates constant variance assumptions (heteroscedasticity).</li>
+        </ul>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><span>Logistic Regression (<code>glm()</code>)</span><span style="color: var(--accent-green);">✅ Correct</span></div>
+        <p style="font-size: 0.9rem; line-height: 1.5; margin-bottom: 1rem;">
+          <strong>Equation:</strong> <span style="font-family: monospace;">ln(p / (1 - p)) = β₀ + β₁X</span>
+        </p>
+        <ul style="font-size: 0.85rem; line-height: 1.6; color: #cbd5e1; padding-left: 1.2rem;">
+          <li>Applies the <strong>Logit Link Function</strong> to form an S-curve (Sigmoid).</li>
+          <li>Outputs are mathematically locked between <strong>0.0 and 1.0 (0% to 100%)</strong>.</li>
+          <li>Models the probability of a customer canceling service.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="callout-title">Instructor Note to Students</div>
+      Use linear regression when asking "<em>How much</em> revenue will this customer generate?" Use logistic regression when asking "<em>Will</em> this customer leave us next month?"
+    </div>
+  </div>
+
+  <!-- SLIDE 2 -->
+  <div class="slide">
+    <span class="badge">Slide 2 / Hypothesis Formulation</span>
+    <h2>Defining Hypotheses Before Modeling</h2>
+    <p class="subtitle">Establishing the baseline assumption of no effect versus our research claim.</p>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header">Mathematical Hypotheses</div>
+        <div style="font-family: monospace; font-size: 0.95rem; line-height: 1.8; margin-bottom: 1rem;">
+          <p><strong>Null Hypothesis (H₀):</strong></p>
+          <p style="color: var(--accent-red); margin-left: 1rem;">β_MonthlyCharges = 0</p>
+          <p style="margin-top: 0.5rem;"><strong>Alternative Hypothesis (Hₐ):</strong></p>
+          <p style="color: var(--accent-green); margin-left: 1rem;">β_MonthlyCharges ≠ 0</p>
+        </div>
+        <p style="font-size: 0.85rem; color: #94a3b8; line-height: 1.5;">
+          The same hypothesis structure applies to all candidate predictors (Tenure, Contract Type, Payment Method).
+        </p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">Decision Rule in Plain English</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Condition</th>
+              <th>Statistical Action</th>
+              <th>Business Takeaway</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>p-value &lt; 0.05</strong></td>
+              <td>Reject H₀</td>
+              <td>The feature has a statistically confirmed impact on churn.</td>
+            </tr>
+            <tr>
+              <td><strong>p-value ≥ 0.05</strong></td>
+              <td>Fail to Reject H₀</td>
+              <td>The feature's relationship is likely random noise; do not base business strategy on it.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="callout-title">Key Principle</div>
+      The Null Hypothesis (H₀) is the default skepticism. We only claim a variable drives churn if our sample data provides overwhelming statistical evidence (p &lt; 0.05).
+    </div>
+  </div>
+
+  <!-- SLIDE 3 -->
+  <div class="slide">
+    <span class="badge">Slide 3 / Data Preparation</span>
+    <h2>Inspecting Data Structure in R</h2>
+    <p class="subtitle">Ensuring numeric features and categorical factors are formatted correctly.</p>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header">R Code Executed</div>
+<pre><span class="cm"># 1. Load dataset</span>
+churn_df <- <span class="fn">read.csv</span>(<span class="str">"telco_churn.csv"</span>)
+
+<span class="cm"># 2. Inspect structure and data types</span>
+<span class="fn">str</span>(churn_df)
+
+<span class="cm"># 3. View first 3 records</span>
+<span class="fn">head</span>(churn_df, <span class="num">3</span>)</pre>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">R Console Output</div>
+<pre>'data.frame': 1000 obs. of 4 variables:
+ $ <span class="hl">Churn</span>         : Factor w/ 2 levels "No","Yes": 2 1 1 ...
+ $ <span class="hl">Tenure</span>        : int  3 24 65 ...
+ $ <span class="hl">MonthlyCharges</span>: num  78.5 45.2 89.1 ...
+ $ <span class="hl">Contract</span>      : Factor w/ 3 levels "Month-to-Month",
+                         "One-Year","Two-Year": 1 2 3 ...</pre>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="callout-title">Code Reading Checklist for Students</div>
+      <ul style="padding-left: 1.2rem; margin-top: 0.3rem;">
+        <li><code>Churn</code> <strong>must be a Factor</strong>: If it is stored as character text ("Yes"/"No"), <code>glm()</code> will throw an error.</li>
+        <li><code>Contract</code> <strong>has 3 levels</strong>: R automatically uses the first level (<code>"Month-to-Month"</code>) as the baseline comparison category.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 4 -->
+  <div class="slide">
+    <span class="badge">Slide 4 / Model Fitting</span>
+    <h2>The <code>glm()</code> Function Anatomy</h2>
+    <p class="subtitle">Breaking down every argument required to fit a logistic regression model.</p>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header">R Syntax</div>
+<pre>churn_model <- <span class="fn">glm</span>(
+  <span class="kw">formula</span> = Churn ~ Tenure + MonthlyCharges + Contract,
+  <span class="kw">data</span>    = churn_df,
+  <span class="kw">family</span>  = <span class="fn">binomial</span>(link = <span class="str">"logit"</span>)
+)</pre>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">Parameter Breakdown</div>
+        <table>
+          <thead>
+            <tr><th>Parameter</th><th>Role</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>Churn ~ ...</code></td>
+              <td>Target variable (Y) predicted by feature inputs (X).</td>
+            </tr>
+            <tr>
+              <td><code>+</code></td>
+              <td>Includes predictors simultaneously in the multivariable equation.</td>
+            </tr>
+            <tr>
+              <td><code>family = binomial</code></td>
+              <td>Specifies a binary target distribution (0 vs. 1).</td>
+            </tr>
+            <tr>
+              <td><code>link = "logit"</code></td>
+              <td>Applies the log-odds transformation curve.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="callout-title">Common Student Bug</div>
+      Forgetting <code>family = binomial</code> causes R to run standard Ordinary Least Squares (OLS) regression instead of logistic regression.
+    </div>
+  </div>
+
+  <!-- SLIDE 5 -->
+  <div class="slide">
+    <span class="badge">Slide 5 / Reading Summary Output</span>
+    <h2>Interpreting <code>summary(churn_model)</code></h2>
+    <p class="subtitle">Where to look: Direction (Estimate) and Significance (p-values).</p>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header">R Console Output</div>
+<pre>Coefficients:
+                  Estimate Std. Error z value <span class="hl">Pr(>|z|)</span>    
+(Intercept)      -1.18240    0.18410   -6.42  1.3e-10 ***
+Tenure           <span class="hl">-0.03810</span>    0.00420   -9.07  &lt; 2e-16 ***
+MonthlyCharges   <span class="hl"> 0.01950</span>    0.00310    6.29  3.2e-10 ***
+ContractOne-Year <span class="hl">-1.15420</span>    0.15230   -7.58  3.4e-14 ***
+ContractTwo-Year <span class="hl">-2.08110</span>    0.21140   -9.84  &lt; 2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05</pre>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">Step-by-Step Interpretation</div>
+        <ol style="font-size: 0.85rem; line-height: 1.6; padding-left: 1.2rem; color: #cbd5e1;">
+          <li><strong>Check Significance:</strong> Look at <code>Pr(>|z|)</code>. All p-values are &lt; 0.001 (indicated by <code>***</code>). We <strong>reject H₀</strong> for all four variables.</li>
+          <li><strong>Check Direction (Estimate):</strong>
+            <ul style="padding-left: 1rem; margin-top: 0.3rem;">
+              <li><span style="color: var(--accent-red);">+0.0195 (MonthlyCharges)</span>: Higher bills increase churn log-odds.</li>
+              <li><span style="color: var(--accent-green);">-0.0381 (Tenure)</span>: Longer tenure decreases churn log-odds.</li>
+            </ul>
+          </li>
+          <li><strong>Note on Units:</strong> Estimates are currently in <em>log-odds</em>, which are hard for business leaders to digest.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="callout-title">Quick Reading Rule</div>
+      Stars (<code>***</code>) tell you if the feature is real; the sign (<code>+</code> or <code>-</code>) tells you if it hurts or helps customer retention.
+    </div>
+  </div>
+
+  <!-- SLIDE 6 -->
+  <div class="slide">
+    <span class="badge">Slide 6 / Actionable Strategy</span>
+    <h2>Converting Output to Odds Ratios</h2>
+    <p class="subtitle">Transforming log-odds into concrete business percentages using <code>exp(coef())</code>.</p>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header">R Code & Execution</div>
+<pre><span class="cm"># Exponentiate coefficients: exp(beta)</span>
+<span class="fn">round</span>(<span class="fn">exp</span>(<span class="fn">coef</span>(churn_model)), <span class="num">3</span>)
+
+<span class="cm"># Console Output:</span>
+(Intercept)           <span class="hl">Tenure</span>   <span class="hl">MonthlyCharges</span> 
+      0.307            <span class="hl">0.963</span>            <span class="hl">1.020</span> 
+
+<span class="hl">ContractOne-Year</span> <span class="hl">ContractTwo-Year</span> 
+           <span class="hl">0.315</span>            <span class="hl">0.125</span></pre>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">Business Translation</div>
+        <table>
+          <thead>
+            <tr><th>Variable</th><th>Odds Ratio</th><th>Executive Takeaway</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Monthly Charges</strong></td>
+              <td><code>1.020</code></td>
+              <td>Each additional $1 on the bill <strong>increases churn odds by 2.0%</strong>.</td>
+            </tr>
+            <tr>
+              <td><strong>Tenure</strong></td>
+              <td><code>0.963</code></td>
+              <td>Each additional month of loyalty <strong>reduces churn odds by 3.7%</strong> (1 - 0.963).</td>
+            </tr>
+            <tr>
+              <td><strong>2-Year Contract</strong></td>
+              <td><code>0.125</code></td>
+              <td>Subscribers on 2-year terms have <strong>87.5% lower churn odds</strong> vs. month-to-month.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="callout-title">Strategic Recommendation for the Business</div>
+      Incentivize month-to-month subscribers with high bills to switch to 1- or 2-year contracts during their first 90 days.
+    </div>
+  </div>
+
+</div>
+
+<!-- Navigation Bar -->
+<div class="controls">
+  <button class="btn" id="prevBtn" onclick="changeSlide(-1)">← Previous</button>
+  <span class="counter" id="slideCounter">Slide 1 of 6</span>
+  <button class="btn" id="nextBtn" onclick="changeSlide(1)">Next →</button>
+</div>
+
+<script>
+  let currentSlide = 0;
+  const slides = document.querySelectorAll('.slide');
+  const counter = document.getElementById('slideCounter');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+
+  function showSlide(index) {
+    slides.forEach((s, i) => {
+      s.classList.toggle('active', i === index);
+    });
+    counter.textContent = `Slide ${index + 1} of ${slides.length}`;
+    prevBtn.disabled = index === 0;
+    nextBtn.disabled = index === slides.length - 1;
+    prevBtn.style.opacity = index === 0 ? "0.4" : "1";
+    nextBtn.style.opacity = index === slides.length - 1 ? "0.4" : "1";
+  }
+
+  function changeSlide(direction) {
+    currentSlide = Math.max(0, Math.min(slides.length - 1, currentSlide + direction));
+    showSlide(currentSlide);
+  }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') {
+      changeSlide(1);
+    } else if (e.key === 'ArrowLeft') {
+      changeSlide(-1);
+    }
+  });
+
+  showSlide(0);
+</script>
+
+</body>
+</html>

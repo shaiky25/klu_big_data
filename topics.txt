@@ -1,0 +1,51 @@
+
+07/25/2026
+
+* Data Preparation
+* Model Planning
+* Model Building
+* Communicating Results and Findings
+* Operationalizing Analytics Models07/25/2026
+
+
+08/01/2026
+* Operationalizing Initial Analysis of the Data: Initial Exploration , Apply basic analytics methods such as distributions
+
+
+08/11/2026
+
+* Statistical Tests and Summary Operations, and Differentiate between results that are Statistically Sound vs Statistically Significant .
+
+
+08/18/2026
+
+* Identify a model for your data and define the null and alternative hypothesis.
+
+* Experimentation and demonstration of initial analysis of data using R.
+
+* Need of analytic and select an appropriate technique based on business objectives
+
+
+08/25/2026
+
+* Apply some of the more methods in
+Analytics solutions,
+
+* Introduction of Various Algorithms in ML & DL.
+
+*  The technical foundations for the methods.
+
+
+09/01/2026
+
+* Use appropriate diagnostic  methods to validate the models created Use R .  
+                    
+* Database analytical functions to fit,score and evaluate models
+
+
+09/15/2026
+
+* Data - Technology & Tools : Tool to Perform Analytics on Unstructured Data using MapReduce Programming Paradigm
+
+* Hadoop : Hadoop Architecture and Components Implementing Distributed data processing Using Hadoop
+
