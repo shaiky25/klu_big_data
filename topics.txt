@@ -49,3 +49,9 @@ Analytics solutions,
 
 * Hadoop : Hadoop Architecture and Components Implementing Distributed data processing Using Hadoop
 
+09/22/2026
+
+* HIVE: Hive Architecture and Data Models, Hive Query Language (HiveQL) and Data Processing.
+   
+* PIG, products in the Hadoop ecosystem other products in the Hadoop ecosystem for unstructured data analytics
+

@@ -11,7 +11,7 @@ This checks only the classes of breakage already confirmed and fixed
 NOT a Keynote-import simulation -- the full deck's unresolved Keynote
 failure (memory: project-session5-deck-keynote-fix) is out of scope.
 
-Usage: lint_deck.py DECK.pptx [--min-slides 15] [--max-slides 20]
+Usage: lint_deck.py DECK.pptx [--min-slides 30] [--max-slides 35]
 Exits 1 and prints one JSON object with an "issues" list (each entry
 names the fix) if anything fails; exits 0 with {"ok": true} otherwise.
 """
@@ -96,8 +96,8 @@ def check_sldsz_and_docprops(prs) -> list[str]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("deck", help="path to the .pptx to lint")
-    ap.add_argument("--min-slides", type=int, default=15)
-    ap.add_argument("--max-slides", type=int, default=20)
+    ap.add_argument("--min-slides", type=int, default=30)
+    ap.add_argument("--max-slides", type=int, default=35)
     args = ap.parse_args()
 
     path = Path(args.deck)

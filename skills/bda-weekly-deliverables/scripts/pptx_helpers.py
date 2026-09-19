@@ -20,6 +20,8 @@ that root cause is untouched here by design -- see the skill's memlog.
 Import and call these from a per-week build script; content (titles,
 card text, tables) is that script's job, not this module's.
 """
+import copy
+
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
@@ -211,6 +213,36 @@ def add_bullets(slide, x, y, w, h, items, size=15):
 
 def notes(slide, text):
     slide.notes_slide.notes_text_frame.text = text
+
+
+def duplicate_slide(prs, index):
+    """Duplicate slide `index` (0-based) and return the new slide, appended
+    at the end of prs.slides. Used to turn one of the apple-style template's
+    12 LAYOUT pattern slides into a real content slide: the new slide keeps
+    the source's layout (so theme/placeholders match) and its shape content,
+    ready for you to edit in place. The source slide at `index` is untouched
+    and keeps its index, so it's safe to call this repeatedly against the
+    same template index. These template slides carry no images and no notes
+    worth keeping, so only shape XML is copied -- set real notes on the
+    result with notes(), don't expect the source's."""
+    source = prs.slides[index]
+    dest = prs.slides.add_slide(source.slide_layout)
+    for shape in list(dest.shapes):
+        shape._element.getparent().remove(shape._element)
+    for shape in source.shapes:
+        dest.shapes._spTree.append(copy.deepcopy(shape._element))
+    return dest
+
+
+def delete_slide(prs, index):
+    """Remove slide `index` (0-based). Use this to drop the template's
+    original 12 LAYOUT pattern slides once their content has been
+    duplicated elsewhere -- deleting by a fixed index repeatedly (e.g.
+    delete_slide(prs, 0) twelve times) works since every deletion shifts
+    later slides down by one and the patterns are always the first 12."""
+    sldId = prs.slides._sldIdLst.sldId_lst[index]
+    prs.part.drop_rel(sldId.get(qn("r:id")))
+    prs.slides._sldIdLst.remove(sldId)
 
 
 def finalize_and_save(prs, path):

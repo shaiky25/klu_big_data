@@ -4,15 +4,28 @@ File: `session-template-apple-style.pptx` (16:9, dark theme)
 
 ## How to use this template
 
-1. **Open the .pptx** in your slide tooling (or with python-pptx).
-2. **Do NOT design slides from scratch.** For each slide you need, **duplicate the
-   closest LAYOUT slide** (slides are named `LAYOUT 01 — Cover`, etc.).
-3. **Replace every `[BRACKETED]` placeholder** with real content. Delete any
-   placeholder you don't need — never leave brackets visible.
-4. **Read the speaker notes of each layout** before using it — they carry
-   per-layout rules.
-5. **Never restyle**: keep the near-black background, Helvetica Neue type,
+1. **Open with python-pptx**: `prs = Presentation("assets/session-template-apple-style.pptx")`.
+   The 12 LAYOUT slides are `prs.slides[0]` through `prs.slides[11]`, in the same
+   order as the catalog below (index = catalog number − 1).
+2. **Do NOT design slides from scratch.** For each content slide you need, call
+   `pptx_helpers.duplicate_slide(prs, index)` against the closest LAYOUT slide's
+   index — it returns a new slide with that layout's shapes copied in, ready to edit.
+   Call it as many times as you need against the same index (e.g. Key Points
+   for three different sections); the source pattern slide is untouched.
+3. **Replace every `[BRACKETED]` placeholder** on the duplicate with real content
+   (`shape.text_frame.text = "..."` or edit the relevant paragraph/run). Delete any
+   placeholder shape you don't need — never leave brackets visible.
+4. **Set real speaker notes** on the duplicate with `pptx_helpers.notes(slide, text)`.
+   The template's own notes are authoring instructions for step 4 below, not content
+   to carry into the delivered deck — duplication does not copy them.
+5. **Read the speaker notes of each of the 12 original LAYOUT slides** before using
+   it — they carry per-layout rules.
+6. **Never restyle**: keep the near-black background, Helvetica Neue type,
    Apple-blue (`#0071E3`) accents, and generous whitespace. The design *is* the template.
+7. **Once every content slide is built**, drop the 12 original LAYOUT pattern
+   slides so they don't ship in the delivered deck: `for _ in range(12): pptx_helpers.delete_slide(prs, 0)`
+   (they're always the first 12 at this point). Then call
+   `pptx_helpers.finalize_and_save(prs, path)` — never `prs.save()` directly.
 
 ## Layout catalog
 
