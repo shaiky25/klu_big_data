@@ -231,6 +231,18 @@ def duplicate_slide(prs, index):
         shape._element.getparent().remove(shape._element)
     for shape in source.shapes:
         dest.shapes._spTree.append(copy.deepcopy(shape._element))
+
+    # Slide-level background (e.g. the template's near-black override) lives
+    # as a <p:bg> sibling of <p:spTree>, not inside it -- shape copying above
+    # never touches it, so without this the duplicate silently falls back to
+    # the master's default background.
+    source_bg = source.part._element.find(qn("p:cSld")).find(qn("p:bg"))
+    if source_bg is not None:
+        dest_cSld = dest.part._element.find(qn("p:cSld"))
+        dest_bg = dest_cSld.find(qn("p:bg"))
+        if dest_bg is not None:
+            dest_cSld.remove(dest_bg)
+        dest_cSld.insert(0, copy.deepcopy(source_bg))
     return dest
 
 
