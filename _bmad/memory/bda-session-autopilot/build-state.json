@@ -1,0 +1,12 @@
+{
+  "sessions": {
+    "session8": {
+      "status": "failed",
+      "date": "2026-09-19",
+      "class_date": "09/22/2026",
+      "topic_text": "HIVE: Hive Architecture and Data Models, Hive Query Language (HiveQL) and Data Processing. / PIG, products in the Hadoop ecosystem other products in the Hadoop ecosystem for unstructured data analytics",
+      "reason": "Toolchain check before build failed: R/Rscript, rmarkdown, pandoc, and the xelatex engine are all absent from this environment (not just missing packages — the binaries themselves are not on PATH and not installed via apt). python-pptx and lxml were missing too and were installed successfully via pip, but knit (R/rmarkdown), lint_rmd.py's dependencies, and the pandoc PDF render all require R/pandoc/xelatex, none of which pip can provide. Per standing instructions, stopped before attempting a build rather than skipping validation. No partial output files were created for session8.",
+      "assumptions": []
+    }
+  }
+}
