@@ -11,4 +11,8 @@ _Aim to stay under roughly 1500 tokens, a guardrail rather than a hard gate. If 
 
 ## Resolved
 - Scheduling: Saturday pulse confirmed firing on its own (first fired 2026-09-19). Cron/trigger working — no longer a concern.
-- Toolchain provisioning: the 09/19 first pulse found R/rmarkdown/pandoc/xelatex entirely absent in the container and stopped rather than apt-get installing them unprompted (session8 recorded `failed`). Later runs' own task instructions explicitly authorize installing the full toolchain (pip + apt-get, sudo if needed) fresh each run, since this is an ephemeral cloud environment — treat "not installed yet" as expected, not a failure, and only stop if an install itself errors.
+- Toolchain provisioning: the 09/19 first pulse found R/rmarkdown/pandoc/xelatex entirely absent and stopped rather than installing unprompted (session8 recorded `failed`). A same-day second pulse's own task instructions explicitly authorized installing the full toolchain (pip + apt-get, sudo if needed) fresh each run — this succeeded cleanly and built session8. Treat "not installed yet" as expected setup, not a failure, when instructed to install.
+- PDF font gap: `-V mainfont:Arial` fails in a fresh container (no Arial, and `ttf-mscorefonts-installer` is blocked by an unrelated broken apt dependency — `update-notifier-common`'s postinst needs `apt_pkg` against a `python3` alternative that doesn't have it). Fix: `apt-get install fonts-liberation`, render with `-V mainfont:"Liberation Sans"` (Arial-metric-compatible). Go straight to this — don't retry `ttf-mscorefonts-installer`.
+
+## Content notes
+- Session7 (09/15) surveyed Hive/Pig/HBase by name only, one paragraph each. Session8 (09/22) went deeper on Hive/Pig specifically (architecture, data model, partitioning/bucketing, HiveQL, Pig Latin) rather than repeating the overview. Worth checking topics.txt each week for this kind of back-to-back overlap before drafting a brief.
