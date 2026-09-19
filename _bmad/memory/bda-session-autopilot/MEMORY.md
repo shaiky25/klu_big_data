@@ -6,8 +6,9 @@ _This file is for distilled insights, not raw notes. Capture the essence: decisi
 
 _Aim to stay under roughly 1500 tokens, a guardrail rather than a hard gate. If your curated knowledge genuinely earns more space, keep it, but treat growth past the guardrail as a signal to prune. Raw session notes go in `sessions/YYYY-MM-DD.md` (not here). Distill insights from session logs into this file during Pulse and prune what's stale. Every token here loads every session, so make each one count. See `references/memory-guidance.md` for full discipline._
 
-## Open Questions (First Breath, still fuzzy)
-- How far ahead next week's topic usually lands in `topics.txt` (Teaching Cadence in BOND.md) — not yet observed. As of 2026-09-19's first pulse, one topic (09/22) was sitting pending three days ahead of class — consistent with the intended Saturday cadence, but one data point isn't a pattern yet.
+## Open Questions
+- How far ahead next week's topic usually lands in `topics.txt` (Teaching Cadence in BOND.md) — one data point so far (09/22 topic sitting pending three days ahead of class on the 09/19 pulse), not yet a confirmed pattern.
 
 ## Resolved
-- Scheduling: the Saturday pulse fired successfully on its own for the first time on 2026-09-19 (First Breath was also 2026-09-19, so this is the very first autonomous run). Cron/trigger is confirmed working — no longer an open concern.
+- Scheduling: Saturday pulse confirmed firing on its own (first fired 2026-09-19). Cron/trigger working — no longer a concern.
+- Toolchain provisioning: the 09/19 first pulse found R/rmarkdown/pandoc/xelatex entirely absent in the container and stopped rather than apt-get installing them unprompted (session8 recorded `failed`). Later runs' own task instructions explicitly authorize installing the full toolchain (pip + apt-get, sudo if needed) fresh each run, since this is an ephemeral cloud environment — treat "not installed yet" as expected, not a failure, and only stop if an install itself errors.
