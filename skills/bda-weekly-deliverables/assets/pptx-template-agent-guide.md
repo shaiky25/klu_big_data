@@ -1,10 +1,9 @@
 # Agent Guide: Apple-Style Session Template
 
 File: `session-template-apple-style.pptx` (16:9, light theme — white background, solid black
-primary text, mid-gray secondary text, Apple-blue accent). A second reference asset,
-`bento-design-reference.pptx`, is available for additional bento-grid/accent-color
-inspiration if a slide calls for it — not wired into the build pipeline, look but don't import
-wholesale.
+primary text, mid-gray secondary text, Apple-blue accent). `bento-design-reference.md` has an
+optional bento-grid/accent-color reference if a slide calls for it — not wired into the build
+pipeline, and not a layout to build from directly.
 
 ## How to use this template
 
