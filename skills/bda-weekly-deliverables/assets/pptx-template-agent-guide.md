@@ -1,6 +1,10 @@
 # Agent Guide: Apple-Style Session Template
 
-File: `session-template-apple-style.pptx` (16:9, dark theme)
+File: `session-template-apple-style.pptx` (16:9, light theme — white background, solid black
+primary text, mid-gray secondary text, Apple-blue accent). A second reference asset,
+`bento-design-reference.pptx`, is available for additional bento-grid/accent-color
+inspiration if a slide calls for it — not wired into the build pipeline, look but don't import
+wholesale.
 
 ## How to use this template
 
@@ -20,7 +24,7 @@ File: `session-template-apple-style.pptx` (16:9, dark theme)
    to carry into the delivered deck — duplication does not copy them.
 5. **Read the speaker notes of each of the 12 original LAYOUT slides** before using
    it — they carry per-layout rules.
-6. **Never restyle**: keep the near-black background, Helvetica Neue type,
+6. **Never restyle**: keep the white background, solid-black text, Helvetica Neue type,
    Apple-blue (`#0071E3`) accents, and generous whitespace. The design *is* the template.
 7. **Once every content slide is built**, drop the 12 original LAYOUT pattern
    slides so they don't ship in the delivered deck: `for _ in range(12): pptx_helpers.delete_slide(prs, 0)`
@@ -51,7 +55,7 @@ File: `session-template-apple-style.pptx` (16:9, dark theme)
 - **Phrases, not sentences.** The detail lives in spoken narration, not on screen.
 - **Numbers get the Stat layout.** Never bury "3× replication" in a bullet.
 - **No paragraphs. No clip art. No bullet walls.**
-- **Images full-bleed or not at all.** A small image floating on black looks broken.
+- **Images full-bleed or not at all.** A small image floating on white looks broken.
 - **Code is real and short.** ≤12 lines, and narrate the 1–2 lines that matter.
 - **Accent color is rationed.** Blue marks the *one* thing to look at per slide.
 - **End sections with a Statement slide**, not a summary bullet list. Summaries are

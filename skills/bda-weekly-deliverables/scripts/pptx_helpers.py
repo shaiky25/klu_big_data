@@ -232,7 +232,7 @@ def duplicate_slide(prs, index):
     for shape in source.shapes:
         dest.shapes._spTree.append(copy.deepcopy(shape._element))
 
-    # Slide-level background (e.g. the template's near-black override) lives
+    # Slide-level background (e.g. the template's solid-white override) lives
     # as a <p:bg> sibling of <p:spTree>, not inside it -- shape copying above
     # never touches it, so without this the duplicate silently falls back to
     # the master's default background.

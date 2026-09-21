@@ -8,3 +8,4 @@ defusedxml
 Pillow
 kagglehub
 pandas
+lxml
