@@ -71,6 +71,43 @@ partition rather than all of it.
 difference between reading a fifteenth of the table and reading all of it, on data that was always
 going to live in HDFS either way.
 
+### Hive execution modes: Local vs. MapReduce
+
+Hive runs a query in one of two modes, chosen by the size of the job rather than anything written in
+the query itself:
+
+| Mode | Used when | What actually runs |
+|---|---|---|
+| Local mode | One data node, a small input — a quick test query against a sample | A single JVM process, no cluster job submitted |
+| MapReduce mode | Multiple data nodes, large input — this dataset's 5,401 rows scaled to a real platform's billions | Compiles to a MapReduce (or Tez) job spread across the cluster |
+
+The query below runs unchanged in either mode — Local while an engineer is still writing and testing
+it, MapReduce once pointed at the full production table. The mode is a runtime decision, not something
+HiveQL declares.
+
+### Getting data into a Hive table
+
+Before any query runs, the table has to exist and hold data — the DDL/DML half of "Data Processing"
+that a query-only example skips:
+
+```sql
+CREATE DATABASE IF NOT EXISTS delivery_ops;
+USE delivery_ops;
+
+CREATE TABLE orders (
+  order_id INT, restaurant_id INT, delivery_time_minutes INT
+)
+PARTITIONED BY (order_date STRING);
+
+LOAD DATA INPATH '/raw/orders_2026_09_06.csv'
+INTO TABLE orders PARTITION (order_date='2026-09-06');
+```
+
+`LOAD DATA INPATH` doesn't copy the file twice — it *moves* it from its raw HDFS location straight into
+the partition directory the Metastore already expects. Nothing is validated at load time; the schema
+is only checked when a query reads the data back, which is exactly why dirty rows load without
+complaint and only surface as a problem once something runs `AVG()` over them.
+
 ### HiveQL in practice
 
 A representative query for this table:
@@ -86,6 +123,20 @@ Run against one day's raw partition, this returns a per-city order count and ave
 but `AVG()` over a column that still contains missing or negative values gives a quietly wrong answer,
 or forces every query that touches the column to add a defensive `WHERE delivery_time_minutes IS NOT
 NULL`. Hive *can* query dirty data. It shouldn't have to.
+
+A second common shape is a **JOIN** against a second table, combined with one of Hive's built-in
+functions (`ROUND()`, alongside `FLOOR()` and `CEILING()`):
+
+```sql
+SELECT r.price_range, ROUND(AVG(o.delivery_time_minutes), 1) AS avg_delivery
+FROM orders o
+JOIN restaurants r ON o.restaurant_id = r.restaurant_id
+WHERE o.order_date = '<target_date>'
+GROUP BY r.price_range;
+```
+
+The JOIN looks exactly like a SQL join because it is one — HiveQL borrows SQL's syntax for combining
+two tables rather than inventing its own.
 
 ## The data-quality problem Hive alone doesn't solve
 
@@ -108,7 +159,37 @@ Hive is built for someone who already knows what question they want answered. Pi
 someone who needs to describe a multi-step transformation — load, filter, group, join, store — as a
 short, readable script, without hand-writing MapReduce for each step. Pig Latin (Pig's language) reads
 like a pipeline, not a single query, which is exactly the shape "turn today's raw order log into a
-clean table" takes:
+clean table" takes.
+
+### Pig Latin's data model: Atom, Tuple, Bag, Map
+
+Where Hive's data model is tables split into partitions and buckets, Pig Latin is built from four
+smaller pieces:
+
+| Concept | What it is | RDBMS equivalent |
+|---|---|---|
+| **Atom** | A single primitive value — int, float, string | One cell |
+| **Tuple** | An ordered sequence of fields | One row |
+| **Bag** | A collection of tuples | One table |
+| **Map** | Key–value pairs, key always a string | A single field that's itself key-value shaped |
+
+A Pig relation like `raw_orders` in the script below is, under the hood, a **bag of tuples** — which is
+why `FILTER` (keep some tuples), `GROUP` (bucket tuples into new bags by a key), and `FOREACH ...
+GENERATE` (build a new tuple per group) are the only verbs Pig Latin really needs: all three just
+operate on bags and tuples.
+
+### Pig execution modes: Local vs. MapReduce
+
+Pig chooses between the same two kinds of mode as Hive, except its Local mode talks to the plain Linux
+filesystem, not HDFS:
+
+| Mode | Reads/writes from | Used when |
+|---|---|---|
+| Local mode | The local Linux filesystem | Testing a script against a small sample before pointing it at the cluster |
+| MapReduce mode (default) | HDFS, via jobs on the Hadoop cluster | Production runs — Pig Latin compiles to MapReduce jobs, the same engine Hive uses |
+
+Pig runs in MapReduce mode by default — the script below only reads real HDFS paths once it's actually
+running in that mode:
 
 ```
 raw_orders   = LOAD 'orders_raw.csv' USING PigStorage(',')
@@ -143,6 +224,11 @@ loop back to the Hive query from the previous section, now running against trust
 | Language shape | Declarative, SQL-like (HiveQL) | Procedural, step-by-step (Pig Latin) |
 | Written by | Analysts who know SQL | Data engineers building pipelines |
 | Best fit | "What's the answer to this question?" | "Turn this raw mess into that clean table." |
+| Data types supported | Structured data only | Structured, semi-structured, and unstructured |
+| Runs on the cluster | Server-side (HiveServer2) | Client-side (compiled where the script runs) |
+| Web interface | Yes | No |
+| Avro support | No — not needed, results are queried directly | Yes — output often feeds straight into another language |
+| Native partitioning | Yes — `PARTITIONED BY`, enforced by the Metastore | No — only ad hoc `FILTER`-based workarounds |
 
 Both still compile down to the same batch execution model (MapReduce, increasingly Tez) that last
 week's session covered — the difference is entirely in who's writing the logic and what shape their

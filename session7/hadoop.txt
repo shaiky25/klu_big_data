@@ -1,0 +1,21 @@
+Slide 1: The Big Data Challenge
+From Single Machines to Clusters: Traditional single-processor systems easily handled small volumes of structured data stored in rows and columns.
+The Rise of Unstructured Big Data: The influx of emails, images, audio, and video created massive semi-structured and unstructured data streams that overwhelmed single machines.
+The Distributed Solution: Hadoop solves scaling bottlenecks by utilizing a distributed cluster of commodity hardware to store and process data collectively.
+Slide 2: Pillar 1 — HDFS & Data Storage
+Distributed File Allocation: The Hadoop Distributed File System (HDFS) splits large files into smaller data blocks and distributes them across multiple data nodes.
+Default Block Sizing: Data is partitioned into default 128 MB blocks (for instance, a 600 MB file is split into four 128 MB blocks and one 88 MB block).
+3x Replication Schema: To ensure fault tolerance, HDFS creates copies of each block with a default replication factor of 3 across different nodes, preventing data loss if a node crashes.
+Slide 3: Pillar 2 — MapReduce Processing Model
+Divide-and-Conquer Execution: MapReduce avoids processing bottlenecks by splitting datasets into individual parts and executing them in parallel across cluster nodes.
+Mapper Phase: Input data is split into sections (such as text separated by full stops), where mapper functions count or process items locally.
+Shuffle, Sort, and Reduce: Intermediate results are shuffled and sorted by key, then consolidated in the reducer phase to generate the aggregated final output.
+Slide 4: Pillar 3 — YARN Resource Orchestration
+Cluster Resource Manager: YARN (Yet Another Resource Negotiator) manages and allocates physical computing resources—including RAM, CPU, and network bandwidth—across concurrent cluster jobs.
+Core Components:
+Resource Manager: Coordinates overall cluster resource assignments.
+Node Managers: Monitor resource consumption on individual server nodes.
+Application Master & Containers: Application Masters request containers (allocations of physical resources) from Node Managers to execute workload requests.
+Slide 5: Ecosystem Tools & Real-World Impact
+Modularity & Add-ons: Additional big data framework tools like Hive, Pig, Apache Spark, Flume, and Sqoop sit on the framework to simplify analytics and data ingestion.
+Enterprise Adoption: Industry leaders such as Facebook, IBM, eBay, and Amazon deploy Hadoop clusters for data warehousing, fraud detection, and recommendation engines.

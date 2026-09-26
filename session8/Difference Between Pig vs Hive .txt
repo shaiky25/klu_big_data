@@ -1,0 +1,1405 @@
+00:04 welcome to simply learn with hive versus
+00:07 
+
+00:07 pig on one side we'll have our sharp
+00:10 
+
+00:10 stinger on our black and yellow friend
+00:12 
+
+00:12 and on the other side our thick hide on
+00:14 
+
+00:14 our pig my name is richard kirschner
+00:16 
+
+00:16 with the simply learn team that's
+00:18 
+
+00:18 www.simplylearn.com
+00:20 
+
+00:20 get certified get ahead as we all know
+00:23 
+
+00:23 hadoop uses mapreduce to process and
+00:26 
+
+00:26 analyze big data processing big data
+00:28 
+
+00:28 consume more time using traditional
+00:30 
+
+00:30 methods hadoop mapreduce was used to
+00:32 
+
+00:32 process big data faster and you can see
+00:35 
+
+00:35 the before thing where we had computers
+00:37 
+
+00:37 all over the place each one doing their
+00:38 
+
+00:38 own little thing and really hard to
+00:40 
+
+00:40 track any one big piece of data on there
+00:42 
+
+00:42 so processing big data consumed more
+00:44 
+
+00:44 time and then with the map reduce
+00:46 
+
+00:46 afterwards processing big data was
+00:48 
+
+00:48 faster using that setup with the map and
+00:50 
+
+00:50 reduce and there's a specific code map
+00:53 
+
+00:53 and reduce although learning to think in
+00:55 
+
+00:55 map and reduce is just as important so
+00:58 
+
+00:58 map and reduce is primarily implemented
+00:60 
+
+00:60 using java codes lengthy complex codes
+01:02 
+
+01:02 were written by programmers to process
+01:04 
+
+01:04 data this proved to be disadvantage for
+01:07 
+
+01:07 users who were non-programmers to
+01:09 
+
+01:09 overcome this issue hive and pig were
+01:11 
+
+01:11 introduced and you can think of your
+01:13 
+
+01:13 shareholders at a meeting or the ceo of
+01:16 
+
+01:16 the company they might know enough to
+01:18 
+
+01:18 write the programming script but they
+01:20 
+
+01:20 don't have the time they don't have the
+01:21 
+
+01:21 time to sit down there and write 120
+01:23 
+
+01:23 lines of java code every time they want
+01:25 
+
+01:25 to look something up so what we're going
+01:27 
+
+01:27 to do today is we're going to cover the
+01:28 
+
+01:28 need for hive and pig what is hive and
+01:31 
+
+01:31 pig hive ql or hql a lot of times is
+01:34 
+
+01:34 called in pig latin that's a terminology
+01:36 
+
+01:36 for the languages data models execution
+01:38 
+
+01:38 modes features and commands so we'll
+01:41 
+
+01:41 start with the need for hive facebook
+01:44 
+
+01:44 found it hard to process and analyze big
+01:46 
+
+01:46 data as not all the employees were well
+01:48 
+
+01:48 versed with high level coding language
+01:50 
+
+01:50 so again imagine you have the manager
+01:52 
+
+01:52 who's working with all these different
+01:55 
+
+01:55 people and he needs to go in and do a
+01:56 
+
+01:56 quick query and he can't the only way
+01:58 
+
+01:58 you can do it is to call the programmers
+01:60 
+
+01:60 and have them take a spot out of their
+02:01 
+
+02:01 day to write the query for him and then
+02:03 
+
+02:03 of course if he's like studying
+02:04 
+
+02:04 something that could be a real big
+02:06 
+
+02:06 problem it become a half hour research
+02:08 
+
+02:08 and query into what's going on becomes
+02:10 
+
+02:10 days so the solution they required a
+02:12 
+
+02:12 language similar to sql which was easier
+02:15 
+
+02:15 to write hence hive was developed with
+02:17 
+
+02:17 the vision to include the concepts of
+02:19 
+
+02:19 tables columns just like sql so just
+02:22 
+
+02:22 like your sql query language and you can
+02:24 
+
+02:24 see here with the hadoop map reduce
+02:27 
+
+02:27 where a guy is sweating i guess or
+02:29 
+
+02:29 crying backward upside down and then
+02:30 
+
+02:30 once they have sql with hive you know
+02:33 
+
+02:33 very happy guy solution what's nice
+02:35 
+
+02:35 about putting hive and designing an hql
+02:38 
+
+02:38 to mirror the sql is that a lot of
+02:41 
+
+02:41 people already know sql you know so if
+02:43 
+
+02:43 you do have a shareholders looking
+02:45 
+
+02:45 something up in the database they
+02:46 
+
+02:46 probably know the basic select star from
+02:49 
+
+02:49 table from database so the need for pig
+02:51 
+
+02:51 where did pig come from so if that's
+02:53 
+
+02:53 where hive came from where did pig come
+02:55 
+
+02:55 from well similarly yahoo also found it
+02:57 
+
+02:57 hard to process and analyze big data
+02:60 
+
+02:60 using mapreduce as not all employees
+03:02 
+
+03:02 were well-versed with the complex java
+03:04 
+
+03:04 codes so just like facebook was having a
+03:06 
+
+03:06 problem so yahoo was too and the
+03:08 
+
+03:08 solution there was a necessity to
+03:09 
+
+03:09 process data using a language which was
+03:11 
+
+03:11 easier than java yahoo researchers
+03:14 
+
+03:14 developed pig which was used to process
+03:16 
+
+03:16 data quickly and easily and you can see
+03:18 
+
+03:18 here again the poor manager sweating it
+03:20 
+
+03:20 out trying to find out the information
+03:22 
+
+03:22 he needs to do his job and the solution
+03:24 
+
+03:24 pig and now he's nice and happy so what
+03:26 
+
+03:26 exactly is hive i mean we've sort of
+03:28 
+
+03:28 talked about it but let's go a little
+03:30 
+
+03:30 bit more in detail hive is a data
+03:32 
+
+03:32 warehouse system which is used for
+03:34 
+
+03:34 analyzing large data sets stored in hdfs
+03:37 
+
+03:37 so here we are with huge hadoop file
+03:39 
+
+03:39 system spread across maybe 10 20 100
+03:42 
+
+03:42 computers and then hive uses a query
+03:44 
+
+03:44 language called hive ql and a lot of
+03:46 
+
+03:46 times you'll see that abbreviated as hql
+03:48 
+
+03:48 which is similar to sql so they mirror
+03:50 
+
+03:50 each other that makes it really easy for
+03:52 
+
+03:52 someone who already knows sql very
+03:54 
+
+03:54 common to come in and switch that query
+03:56 
+
+03:56 over to hql especially when you're
+03:58 
+
+03:58 already backing up a lot of your sql
+04:00 
+
+04:00 databases that you may be running on
+04:02 
+
+04:02 your enterprise machines into your data
+04:04 
+
+04:04 warehouse so you're already using sql
+04:07 
+
+04:07 moving stuff over so it's not a big step
+04:09 
+
+04:09 and it's very useful to keep those
+04:11 
+
+04:11 similarities together so what is pig so
+04:14 
+
+04:14 if hive works on sql what does pig do
+04:17 
+
+04:17 what is pig
+04:18 
+
+04:18 well pig like hive is used to go over a
+04:21 
+
+04:21 data warehouse system and it's used to
+04:23 
+
+04:23 analyze large data sets stored in the
+04:26 
+
+04:26 hadoop file system now where a
+04:28 
+
+04:28 difference is it is about data flow and
+04:31 
+
+04:31 the data flow is then used to analyze
+04:34 
+
+04:34 the data in pig let's look at the hive
+04:36 
+
+04:36 ql or the hql so we can see what the
+04:39 
+
+04:39 actual properties of these two are hive
+04:41 
+
+04:41 query language or hql hiveql is a query
+04:44 
+
+04:44 language used by hive to process and
+04:47 
+
+04:47 analyze data declarative language which
+04:49 
+
+04:49 is exactly similar to sql and hive ql
+04:53 
+
+04:53 works on structured data and at this
+04:55 
+
+04:55 point let's go ahead and bring up the
+04:57 
+
+04:57 apache website and since hive is now
+04:60 
+
+04:60 part of the hadoop framework you can go
+05:02 
+
+05:02 to
+05:03 
+
+05:03 hive.apache.org and you can look up
+05:05 
+
+05:05 apache of the hive on here you'll start
+05:07 
+
+05:07 seeing references for b line b line is
+05:10 
+
+05:10 the update to hive b line has everything
+05:13 
+
+05:13 hive does in it plus some new features
+05:15 
+
+05:15 most places i worked with still use hive
+05:19 
+
+05:19 i don't see a lot of upgrade to b line
+05:20 
+
+05:20 yet although it's not a big upgrade and
+05:22 
+
+05:22 places are starting to upgrade to there
+05:24 
+
+05:24 and you can on here go to the language
+05:26 
+
+05:26 manual you'll see the different commands
+05:28 
+
+05:28 you'll see high of reference to b line
+05:30 
+
+05:30 reference our age catalog if you go
+05:32 
+
+05:32 under commands and we'll look in more
+05:34 
+
+05:34 detail in just a minute on this you have
+05:36 
+
+05:36 the language for getting in and out of
+05:37 
+
+05:37 there as you go down you'll see basic
+05:40 
+
+05:40 hive setup and if we go back a page we
+05:43 
+
+05:43 can go down here and look at here it is
+05:46 
+
+05:46 data manipulation statements our load
+05:48 
+
+05:48 insert update delete and once you're in
+05:50 
+
+05:50 here you'll see that these look a lot
+05:52 
+
+05:52 like sql so when you're loading the data
+05:55 
+
+05:55 very similar setup so it mirrors the sql
+05:58 
+
+05:58 query language on there but we have our
+06:00 
+
+06:00 hive or hql our hive ql and then we have
+06:04 
+
+06:04 pig latin for pig pig latin is a
+06:06 
+
+06:06 procedural data flow language used in
+06:08 
+
+06:08 pig to analyze data pig latin is similar
+06:11 
+
+06:11 to sql but varies greatly it is used for
+06:14 
+
+06:14 structured
+06:15 
+
+06:15 semi-structured and unstructured data 10
+06:18 
+
+06:18 lines of pig latin code equals about 200
+06:20 
+
+06:20 lines in java so we're looking at map
+06:22 
+
+06:22 reduce for either one of these we might
+06:25 
+
+06:25 be talking just a few lines of code
+06:26 
+
+06:26 versus a couple hundred lines in the
+06:29 
+
+06:29 mapreduce java setup and just like we
+06:31 
+
+06:31 looked at the hive ql let's go ahead and
+06:33 
+
+06:33 look at the pig latin one and pull up
+06:35 
+
+06:35 their website and just like we had
+06:38 
+
+06:38 hive.apache.org you can go
+06:39 
+
+06:39 pig.apache.org
+06:41 
+
+06:41 look at the open source on here and then
+06:43 
+
+06:43 they have like the news the releases and
+06:45 
+
+06:45 you can go in here and also look at the
+06:48 
+
+06:48 actual
+06:49 
+
+06:49 script language and we'll go down here
+06:51 
+
+06:51 under the read the documentation you'll
+06:53 
+
+06:53 see an overview you can actually do the
+06:55 
+
+06:55 getting started on here pig latin basics
+06:58 
+
+06:58 and because pig latin isn't already
+07:00 
+
+07:00 based on something we know such as sql
+07:03 
+
+07:03 like hql is it's a little different
+07:05 
+
+07:05 you'll see that you have some different
+07:07 
+
+07:07 setup and we'll look a little closer at
+07:09 
+
+07:09 that when we get into some of the couple
+07:11 
+
+07:11 basic setups on here and how they work
+07:14 
+
+07:14 but you can see here there's full line
+07:15 
+
+07:15 of commands in here and you can skim
+07:17 
+
+07:17 through the all the commands some of
+07:18 
+
+07:18 them would look familiar like load you
+07:20 
+
+07:20 probably understand what limit is you
+07:22 
+
+07:22 limit your returns to like top 10 that
+07:24 
+
+07:24 kind of thing so let's go ahead and
+07:26 
+
+07:26 drill down a little bit into the
+07:27 
+
+07:27 language and let's look at the hive data
+07:29 
+
+07:29 model so in the hive data model we have
+07:31 
+
+07:31 tables and hive are similar to those in
+07:33 
+
+07:33 the rdbms we have our partitions tables
+07:36 
+
+07:36 are grouped into partitions to group the
+07:38 
+
+07:38 same kind of data based on the partition
+07:40 
+
+07:40 key and then we have our buckets
+07:42 
+
+07:42 partitions are further divided into
+07:44 
+
+07:44 buckets for better querying and what's
+07:46 
+
+07:46 nice about this is if you already have
+07:48 
+
+07:48 an sql server running on your enterprise
+07:50 
+
+07:50 computers and you're backing that data
+07:52 
+
+07:52 up into your hive setup then you already
+07:55 
+
+07:55 have all your data and tables and
+07:57 
+
+07:57 everything defined and that makes it a
+07:59 
+
+07:59 lot easier same querying coming over
+08:01 
+
+08:01 which is a few minor tweaks to alter it
+08:04 
+
+08:04 to the hql with pig latin data model we
+08:07 
+
+08:07 have what we call an atom atom is a
+08:09 
+
+08:09 similar value of primitive data type
+08:11 
+
+08:11 like integer float string it is always
+08:14 
+
+08:14 stored as a string and you can see we
+08:16 
+
+08:16 have 10 or 50 so it doesn't matter the
+08:18 
+
+08:18 atom is going to store those as one or
+08:20 
+
+08:20 the other and then a tuple represents a
+08:22 
+
+08:22 sequence of fields it can be of any data
+08:24 
+
+08:24 type it is same as a row in the rdbms so
+08:28 
+
+08:28 you can see here we have a string and we
+08:30 
+
+08:30 have a integer going in there ted 50 and
+08:33 
+
+08:33 that's our tuple and then you have a bag
+08:35 
+
+08:35 a bag is a collection of tuples it is
+08:37 
+
+08:37 the same as a table in rdbms it is
+08:39 
+
+08:39 represented by the brackets in here and
+08:42 
+
+08:42 then the map map is a set of key value
+08:44 
+
+08:44 pairs key is of character type and value
+08:48 
+
+08:48 can be of any type is represented by the
+08:50 
+
+08:50 square brackets and you can see under
+08:52 
+
+08:52 the map how everything is kind of
+08:54 
+
+08:54 combined so you have your name mike your
+08:57 
+
+08:57 age 30 so you have your bag you have
+08:59 
+
+08:59 your setup in there which is all
+09:01 
+
+09:01 connected to the atom the tuple and the
+09:03 
+
+09:03 bag
+09:04 
+
+09:04 so we talk about execute modes hive
+09:07 
+
+09:07 execution modes hive operates in two
+09:10 
+
+09:10 modes depending on the number and size
+09:12 
+
+09:12 of data nodes
+09:13 
+
+09:13 we have the local mode it is used when
+09:15 
+
+09:15 the data is small and one data node is
+09:17 
+
+09:17 present and you can look at that as
+09:19 
+
+09:19 you're only doing a small amount of data
+09:21 
+
+09:21 on your computer you're testing out what
+09:23 
+
+09:23 you're going to do on the larger data
+09:25 
+
+09:25 set to see how it works to make sure
+09:26 
+
+09:26 everything works correctly and then you
+09:28 
+
+09:28 have your map reduce mode it is used
+09:30 
+
+09:30 when there are multiple data nodes and
+09:31 
+
+09:31 the data is large and in pig execution
+09:34 
+
+09:34 modes depending on where the data is
+09:36 
+
+09:36 reciting and where the pig script is
+09:37 
+
+09:37 going to run pig works in two modes also
+09:40 
+
+09:40 and to no surprise we have the local
+09:43 
+
+09:43 mode and this mode pig engine takes
+09:44 
+
+09:44 input from the linux file system and the
+09:47 
+
+09:47 output is stored in the same file system
+09:49 
+
+09:49 so you get a little bit different here
+09:50 
+
+09:50 we're looking at the linux file system
+09:52 
+
+09:52 versus the local hadoop single node and
+09:55 
+
+09:55 then we have map reduce mode in this
+09:57 
+
+09:57 mode queries written in pig latin are
+09:58 
+
+09:58 translated into mapreduce jobs and are
+10:00 
+
+10:00 run on the hadoop cluster pig runs on
+10:03 
+
+10:03 this mode by default and if we're going
+10:05 
+
+10:05 to continue to compare the two and see
+10:07 
+
+10:07 how they stack up against each other and
+10:09 
+
+10:09 why one would work and one wouldn't for
+10:11 
+
+10:11 certain setups let's go ahead and look
+10:13 
+
+10:13 at the features so in hive used by data
+10:16 
+
+10:16 analysis when we talk about pig used by
+10:18 
+
+10:18 programmers and researchers so you can
+10:20 
+
+10:20 think of query versus researching the
+10:24 
+
+10:24 data they both are kind of similar
+10:25 
+
+10:25 there's a lot of overlap there but that
+10:27 
+
+10:27 is the basics is usually who's going to
+10:29 
+
+10:29 be using it and why hive query language
+10:32 
+
+10:32 is a language used so we have hql or
+10:34 
+
+10:34 hive ql pig latin is language used for
+10:37 
+
+10:37 pick now hive works on structured data
+10:40 
+
+10:40 does not work on other data types this
+10:42 
+
+10:42 is very important this is very key one
+10:44 
+
+10:44 of the key differences between them
+10:46 
+
+10:46 because pig works on structured
+10:48 
+
+10:48 semi-structured and unstructured data
+10:51 
+
+10:51 and you can think of it this way hive is
+10:52 
+
+10:52 great for querying a database tables and
+10:55 
+
+10:55 columns and rows or peg when you start
+10:58 
+
+10:58 getting into word count and analyzing in
+11:01 
+
+11:01 this case facebook posts or postings
+11:03 
+
+11:03 that people have written you start
+11:05 
+
+11:05 getting into the need for something like
+11:07 
+
+11:07 pig lat which does a little bit more and
+11:09 
+
+11:09 different than the hql or hive ql and
+11:12 
+
+11:12 then hive works on the server side of
+11:14 
+
+11:14 the cluster so anything you do goes
+11:16 
+
+11:16 through that server side setup where pig
+11:19 
+
+11:19 works on the client side of the cluster
+11:21 
+
+11:21 meaning that the code comes through is
+11:24 
+
+11:24 compiled and then applied to the cluster
+11:26 
+
+11:26 and executed hive does not support avro
+11:30 
+
+11:30 and it really doesn't need to avro is
+11:32 
+
+11:32 the language which kind of sits and
+11:34 
+
+11:34 allows other languages to access it
+11:36 
+
+11:36 because it's a query language usually
+11:38 
+
+11:38 you send your query off and you
+11:40 
+
+11:40 designate it to hive and once you get
+11:41 
+
+11:41 the query back you process it with
+11:43 
+
+11:43 whatever you need to or you just look at
+11:44 
+
+11:44 the results on there where pig supports
+11:47 
+
+11:47 avro because a lot of times what you're
+11:48 
+
+11:48 pulling when you're doing like say word
+11:50 
+
+11:50 counts or analyzing documents that is
+11:53 
+
+11:53 going to go into some other programming
+11:55 
+
+11:55 language and so avro is that nice layer
+11:57 
+
+11:57 in between that lets piglet go into
+11:59 
+
+11:59 whatever you're working in and then hive
+12:01 
+
+12:01 supports partitions pig does not support
+12:04 
+
+12:04 partitions although there is an option
+12:06 
+
+12:06 for filtering so it has his own kind of
+12:08 
+
+12:08 partition like setup where hive has a
+12:10 
+
+12:10 very clear partition setup just like you
+12:13 
+
+12:13 have in sql hive has web interface pig
+12:15 
+
+12:15 does not support a web interface so you
+12:17 
+
+12:17 can still go into your terminal command
+12:19 
+
+12:19 line but we don't have you can't log on
+12:21 
+
+12:21 through the internet and you don't need
+12:23 
+
+12:23 to because you're going to run your
+12:24 
+
+12:24 terminal and then submit that into the
+12:26 
+
+12:26 server versus hive which needs that
+12:28 
+
+12:28 interface since it's running on the
+12:30 
+
+12:30 server side and then we'll go ahead and
+12:31 
+
+12:31 take a short look at the commands few
+12:33 
+
+12:33 hive commands create database database
+12:36 
+
+12:36 name that should look real familiar if
+12:37 
+
+12:37 you've done any sql show databases same
+12:40 
+
+12:40 thing shows the databases now we can
+12:42 
+
+12:42 create a table inside the database
+12:44 
+
+12:44 create table table name id integer name
+12:47 
+
+12:47 string and so on all the different
+12:49 
+
+12:49 columns you have in there and then you
+12:51 
+
+12:51 also add your row format delimited
+12:53 
+
+12:53 fields terminated by that's really
+12:56 
+
+12:56 important because if you don't show
+12:58 
+
+12:58 where it's terminated and how those
+12:59 
+
+12:59 things load into the database when
+13:01 
+
+13:01 you're creating it then it's going to
+13:02 
+
+13:02 come up and cause problems down the road
+13:05 
+
+13:05 and of course you have show tables so
+13:07 
+
+13:07 you can see what tables are in your
+13:08 
+
+13:08 database with hive you actually type in
+13:11 
+
+13:11 hive and opens up a hive prompt just
+13:14 
+
+13:14 like you see here and you can see you
+13:16 
+
+13:16 can do a select round around the number
+13:18 
+
+13:18 for 2.3 from temp so when you rounds it
+13:21 
+
+13:21 off basically what that is rounds out
+13:23 
+
+13:23 the value to the nearest highest integer
+13:24 
+
+13:24 2.3 becomes 2. and you can select floor
+13:27 
+
+13:27 2.3 from temp rounds off any positive or
+13:30 
+
+13:30 negative decimal value down to the next
+13:32 
+
+13:32 least integer value so 2.3 now becomes
+13:35 
+
+13:35 two and you can do select ceiling 2.3
+13:37 
+
+13:37 from temp this function is used to get
+13:39 
+
+13:39 the smallest integer which is greater
+13:40 
+
+13:40 than or equal to the specified numeric
+13:43 
+
+13:43 expression now that's just some basic
+13:45 
+
+13:45 rounding off features again these are
+13:47 
+
+13:47 all stuff you could run in sql in this
+13:49 
+
+13:49 language look just like your sql
+13:51 
+
+13:51 language or very similar to it this way
+13:53 
+
+13:53 if you're using sql and your main server
+13:56 
+
+13:56 as you put your stuff into the data
+13:57 
+
+13:57 warehouse you can directly mirror those
+13:59 
+
+13:59 tables those databases the tables the
+14:02 
+
+14:02 columns and even your selection and when
+14:05 
+
+14:05 you create those queries you almost
+14:07 
+
+14:07 bring the query straight over into hive
+14:09 
+
+14:09 it makes it very versatile in a company
+14:11 
+
+14:11 and very easy for the top management or
+14:14 
+
+14:14 somebody who's not a programmer to go in
+14:15 
+
+14:15 there and do these basic queries and
+14:17 
+
+14:17 even somebody who is a programmer to be
+14:20 
+
+14:20 able to do these basic queries might use
+14:21 
+
+14:21 this to save a lot of time since it's so
+14:24 
+
+14:24 fast put together a query line now we'll
+14:26 
+
+14:26 look at a few pig commands and one of
+14:28 
+
+14:28 the biggest things i find going from
+14:30 
+
+14:30 into pig is doesn't really it mirrors
+14:33 
+
+14:33 some things you start to see some of the
+14:35 
+
+14:35 terminology you might see in working
+14:38 
+
+14:38 with spark or something like that where
+14:39 
+
+14:39 they talk about bags and tuples and
+14:41 
+
+14:41 things like that but it also has its own
+14:43 
+
+14:43 language it makes a little a little bit
+14:45 
+
+14:45 more of a learning curve a lot of times
+14:47 
+
+14:47 in a company and you can see here we
+14:48 
+
+14:48 have hadoop dfs put that's a hadoop
+14:51 
+
+14:51 command path name pig input for input to
+14:54 
+
+14:54 be moved into the hadoop file system and
+14:56 
+
+14:56 you just simply type pick so just like
+14:58 
+
+14:58 hive you type hive pig starts the pig
+15:00 
+
+15:00 mode and then you create say a relation
+15:03 
+
+15:03 equals load pig input using pig storage
+15:06 
+
+15:06 comma separated as and then you have
+15:09 
+
+15:09 your breakup and this loads the file
+15:11 
+
+15:11 from the hdfs into pig this is very
+15:14 
+
+15:14 similar to your sql setup so we're
+15:17 
+
+15:17 bringing in our columns and our rows but
+15:20 
+
+15:20 keep in mind you can do a lot of things
+15:21 
+
+15:21 that aren't structured data so this is
+15:25 
+
+15:25 one aspect of the pig it goes beyond
+15:27 
+
+15:27 this but this gives you a chance to
+15:29 
+
+15:29 compare it to the hql or the hive ql
+15:32 
+
+15:32 language and then we dump our relation
+15:34 
+
+15:34 one the results from the previous load
+15:36 
+
+15:36 command is displayed using dump and when
+15:38 
+
+15:38 you're doing pig it doesn't execute
+15:41 
+
+15:41 until you run the dump so once you until
+15:43 
+
+15:43 you've hit the dump button it doesn't
+15:45 
+
+15:45 actually execute the code and then we
+15:46 
+
+15:46 can do a relation one filter equals
+15:48 
+
+15:48 filter relation one by column name
+15:50 
+
+15:50 equals attribute name and then we can
+15:52 
+
+15:52 dump the relation one filter filter
+15:54 
+
+15:54 command shows the results for that
+15:55 
+
+15:55 particular filter that we give so you'll
+15:58 
+
+15:58 see some overlap there as far as the
+15:60 
+
+15:60 logic of filtering we could do that with
+16:02 
+
+16:02 the select command in hql and you can
+16:04 
+
+16:04 see that we're loading the data in very
+16:06 
+
+16:06 similar since this is a structured data
+16:08 
+
+16:08 setup but then pig like i said goes a
+16:10 
+
+16:10 little bit beyond the sql so it's not as
+16:13 
+
+16:13 easy to spin a company or individuals up
+16:17 
+
+16:17 on pig but it's also more robust for
+16:20 
+
+16:20 analyzing data and going one more level
+16:22 
+
+16:22 than the s then the hql or hive does so
+16:25 
+
+16:25 we've covered the needs for hive and pig
+16:28 
+
+16:28 what is hive and pig we looked a little
+16:30 
+
+16:30 bit at the hql and the pig latin we
+16:32 
+
+16:32 looked at data models we took a quick
+16:35 
+
+16:35 tour of execution modes and features and
+16:38 
+
+16:38 we looked at some of the commands you
+16:39 
+
+16:39 can use and of course you can always go
+16:41 
+
+16:41 to the apache website for the full list
+16:43 
+
+16:43 of commands with that i want to thank
+16:45 
+
+16:45 you for joining us today for more
+16:47 
+
+16:47 information visit www.simplylearn.com
+16:50 
+
+16:50 get certified get ahead feel free to
+16:53 
+
+16:53 also post questions here on the youtube
+16:55 
+
+16:55 video or join our youtube community we
+16:58 
+
+16:58 do have a monitor traxxas to help answer
+17:00 
+
+17:00 those questions or come visit us on the
+17:02 
+
+17:02 website happy learning
+17:08 
+
+17:08 hi there if you like this video
+17:10 
+
+17:10 subscribe to the simply learn youtube
+17:11 
+
+17:11 channel and click here to watch similar
+17:14 
+
+17:14 videos turn it up and get certified
+17:16 
+
+17:16 click here

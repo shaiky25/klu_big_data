@@ -200,7 +200,51 @@ table reads roughly a fourteenth of the data a naive scan would — one day's di
 fourteen. That's the same "don't move what you don't have to" principle as last week's map-local
 computation, applied to query planning instead of job scheduling.
 
-### HiveQL in practice
+### Hive execution modes: Local vs. MapReduce
+
+Hive picks between two execution modes, and which one runs is about the size of the job, not the query
+itself:
+
+| Mode | Used when | What actually runs |
+|---|---|---|
+| **Local mode** | One data node, a small input (a quick test query against a sample) | Runs in a single JVM process, no cluster job submitted |
+| **MapReduce mode** | Multiple data nodes, large input — this week's 5,401-row `orders` table at real platform scale would be billions of rows | Compiles to a MapReduce (or Tez) job spread across the cluster |
+
+The same `SELECT ... GROUP BY` below would run in Local mode against a laptop-sized sample while an
+engineer is still writing it, then switch to MapReduce mode with zero syntax changes once pointed at
+the full production table — the mode is a runtime decision Hive makes, not something the HiveQL itself
+declares.
+
+### Getting data into a Hive table
+
+Before any `SELECT` runs, the table has to exist and hold data. This is the DDL/DML half of "Data
+Processing" that a query-only example skips over:
+
+```{r hiveql-ddl}
+# DDL/DML an analyst would type to stand up this week's table and load a raw
+# file into it -- shown as text, since this session has no live Hive cluster.
+hiveql_setup <- "
+CREATE DATABASE IF NOT EXISTS delivery_ops;
+USE delivery_ops;
+
+CREATE TABLE orders (
+  order_id INT, restaurant_id INT, delivery_time_minutes INT
+)
+PARTITIONED BY (order_date STRING);
+
+LOAD DATA INPATH '/raw/orders_2026_09_06.csv'
+INTO TABLE orders PARTITION (order_date='2026-09-06');
+"
+cat(hiveql_setup)
+```
+
+`LOAD DATA INPATH` doesn't copy bytes twice — it *moves* the file from its raw HDFS location straight
+into the partition directory the Metastore already expects (`order_date=2026-09-06/`, matching the
+`metastore` table shown earlier). Nothing is parsed or validated at load time; the schema is only
+checked when a query reads the data back, which is exactly why the dirty rows in this dataset load
+successfully and only show up as a problem once someone runs `AVG()` over them.
+
+### Querying and joining in HiveQL
 
 ```{r hiveql-example}
 # The HiveQL an analyst would actually type -- shown as text since this session
@@ -225,6 +269,32 @@ Notice the `NA`-driven fragility here: `AVG()` over a column with missing or neg
 misleading answer (or requires a defensive `WHERE delivery_time_minutes IS NOT NULL` on every query
 that touches it). Hive can query dirty data, but it shouldn't have to — which is exactly the job the
 next tool exists for.
+
+A second, equally common HiveQL shape is a **JOIN** against a second table, plus one of Hive's built-in
+functions (`ROUND()`, alongside `FLOOR()` and `CEILING()`):
+
+```{r hiveql-join}
+# HiveQL an analyst would type to break delivery time down by price tier --
+# joining the order log to the restaurant dimension table by restaurant_id.
+hiveql_join <- sprintf("
+SELECT r.price_range, ROUND(AVG(o.delivery_time_minutes), 1) AS avg_delivery
+FROM orders o
+JOIN restaurants r ON o.restaurant_id = r.restaurant_id
+WHERE o.order_date = '%s'
+GROUP BY r.price_range;
+", target_date)
+cat(hiveql_join)
+
+# R equivalent: merge() is a JOIN, aggregate() is the GROUP BY, round() is ROUND().
+joined <- merge(one_day, restaurant_data[, c("restaurant_id", "price_range")],
+                by = "restaurant_id")
+join_result <- aggregate(delivery_time_minutes ~ price_range, data = joined,
+                          FUN = function(x) round(mean(x, na.rm = TRUE), 1))
+print(join_result)
+```
+
+The JOIN itself looks exactly like a SQL join because it is one — HiveQL doesn't invent new syntax for
+combining two tables, it borrows SQL's.
 
 ---
 
@@ -258,7 +328,51 @@ short, readable script, without hand-writing MapReduce for each step. Pig Latin 
 like a pipeline, not a single query, which is exactly the shape "turn today's raw order log into a
 clean table" takes.
 
-```{r piglatin-script, eval=FALSE}
+### Pig Latin's data model: Atom, Tuple, Bag, Map
+
+Where Hive's data model is tables split into partitions and buckets, Pig Latin builds everything from
+four smaller pieces:
+
+```{r pig-data-model}
+# Atom -- a single primitive value (int, float, string). One field.
+atom_example <- orders$delivery_time_minutes[1]
+cat("Atom:", atom_example, "\n")
+
+# Tuple -- an ordered sequence of fields, same as one row in an RDBMS.
+tuple_example <- orders[1, c("order_id", "restaurant_id", "city", "delivery_time_minutes")]
+cat("Tuple (one order row):\n"); print(tuple_example, row.names = FALSE)
+
+# Bag -- a collection of tuples, same as a table. Every data frame we've
+# built this session (orders, clean_orders, restaurant_data) IS a bag.
+bag_example <- orders[1:3, c("order_id", "city", "delivery_time_minutes")]
+cat("\nBag (a small collection of tuples):\n"); print(bag_example, row.names = FALSE)
+
+# Map -- key-value pairs, key always a string, value any type. A named list
+# is R's equivalent: one order represented as field-name -> value.
+map_example <- list(order_id = orders$order_id[1], city = orders$city[1],
+                     delivery_time_minutes = orders$delivery_time_minutes[1])
+cat("\nMap (one order, keyed by field name):\n"); str(map_example)
+```
+
+A Pig relation like `raw_orders` in the script below is, under the hood, a **bag of tuples** — which is
+why `FILTER` (keep some tuples), `GROUP` (bucket tuples into new bags by a key), and `FOREACH ...
+GENERATE` (build a new tuple per group) are the only verbs Pig Latin really needs: they're all
+operations on bags and tuples.
+
+### Pig execution modes: Local vs. MapReduce
+
+Pig chooses between the same two kinds of mode as Hive, but the Local mode means something slightly
+different — it talks to the plain Linux filesystem, not HDFS:
+
+| Mode | Reads/writes from | Used when |
+|---|---|---|
+| **Local mode** | The local Linux filesystem | Testing a script against a small sample before pointing it at the cluster |
+| **MapReduce mode** (default) | HDFS, via jobs on the Hadoop cluster | Production runs — Pig Latin compiles to MapReduce jobs, same engine Hive uses |
+
+Pig runs in MapReduce mode by default, which matters for the pipeline below: the `LOAD`/`FILTER`/
+`STORE` script only reads real HDFS paths once it's actually running in that mode.
+
+```pig
 -- The Pig Latin an engineer would actually write for this cleanup job.
 -- Not executed here (no live Pig cluster) -- the equivalent runs in R below.
 raw_orders  = LOAD 'orders_raw.csv' USING PigStorage(',')
@@ -318,11 +432,18 @@ print(final_result)
 
 ```{r hive-vs-pig}
 comparison <- data.frame(
-  Aspect = c("Language shape", "Written by", "Best fit"),
+  Aspect = c("Language shape", "Written by", "Best fit", "Data types supported",
+             "Runs on the cluster", "Web interface", "Avro support", "Native partitioning"),
   Hive = c("Declarative, SQL-like (HiveQL)", "Analysts who know SQL",
-           "\"What's the answer to this question?\""),
+           "\"What's the answer to this question?\"", "Structured data only",
+           "Server-side (HiveServer2)",
+           "Yes", "No -- not needed, results are queried directly",
+           "Yes -- PARTITIONED BY, enforced by the Metastore"),
   Pig = c("Procedural, step-by-step (Pig Latin)", "Data engineers building pipelines",
-          "\"Turn this raw mess into that clean table.\"")
+          "\"Turn this raw mess into that clean table.\"", "Structured, semi-structured, and unstructured",
+          "Client-side (compiled where the script runs)",
+          "No", "Yes -- output often feeds straight into another language",
+          "No -- only ad hoc FILTER-based workarounds")
 )
 print(comparison, row.names = FALSE)
 ```

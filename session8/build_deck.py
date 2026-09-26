@@ -57,11 +57,13 @@ def set_lines(shape, lines, font_name=None):
         extra._p.getparent().remove(extra._p)
 
 
-def add_flow(slide, x, y, w, h, labels):
-    """A labeled left-to-right flow diagram: one bordered node per label,
-    separated by arrow glyphs, built from the template's own card colors
-    (near-black fill, Apple-blue border) so it reads as part of the deck,
-    not a bolted-on chart."""
+def add_flow(slide, x, y, w, h, labels, connect=True):
+    """A row of bordered nodes, one per label, built from the template's own
+    card colors (near-black fill, Apple-blue border) so it reads as part of
+    the deck, not a bolted-on chart. connect=True (default) joins them with
+    arrow glyphs for a left-to-right sequence; connect=False lays them out
+    as parallel, unconnected boxes -- for grouping concepts (e.g. a data
+    model's building blocks) rather than showing a pipeline."""
     n = len(labels)
     gap = Emu(int(0.35 * 914400))
     node_w = Emu(int((w - gap * (n - 1)) / n))
@@ -78,7 +80,7 @@ def add_flow(slide, x, y, w, h, labels):
         p.text = label
         p.alignment = PP_ALIGN.CENTER
         p.font.size, p.font.bold, p.font.color.rgb = Pt(14), True, NODE_TEXT
-        if i < n - 1:
+        if connect and i < n - 1:
             ax = Emu(int(x + (i + 1) * node_w + i * gap))
             arrow = slide.shapes.add_textbox(ax, y, gap, h)
             atf = arrow.text_frame
@@ -138,41 +140,61 @@ def build():
     ph.notes(s, "Real incident pattern: pointing a managed table at a shared raw-log directory, then "
                  "one DROP TABLE takes out data another pipeline still needed.")
 
-    # 7. Key Points — data model
-    s = ph.duplicate_slide(prs, KEYPOINTS)
+    # 7. Diagram — Hive's data model (parallel boxes, no arrows)
+    s = ph.duplicate_slide(prs, DIAGRAM)
     set_lines(s.shapes[0], ["Hive's data model"])
-    set_lines(s.shapes[2], ["—  Partitions — one HDFS folder per column value",
-                             "—  Buckets — a fixed hash split within a partition",
-                             "—  Both exist to avoid reading what you don't need"])
-    ph.notes(s, "Partitioning is directory-level; bucketing is file-level within a partition. Same idea, finer grain.")
+    for shp in list(s.shapes):
+        if shp.has_text_frame and shp.text_frame.text.startswith("[DIAGRAM"):
+            shp._element.getparent().remove(shp._element)
+    add_flow(s, Emu(2286000), Emu(2700000), Emu(7620000), Emu(1400000),
+             ["Tables", "Partitions", "Buckets"], connect=False)
+    ph.notes(s, "Tables split into partitions (one HDFS folder per column value, e.g. order_date); "
+                 "partitions split further into buckets (a fixed hash split) for even finer-grained reads. "
+                 "Both exist for the same reason -- avoid reading data a query doesn't need.")
 
-    # 8. Stat — 15x
-    s = ph.duplicate_slide(prs, STAT)
-    set_lines(s.shapes[0], ["15×", "fewer rows read with one partitioned query"])
-    ph.notes(s, "This week's simulated order log: 5,401 rows across 14 days. One day's partition is 361 rows.")
-
-    # 9. Code — CREATE TABLE + SELECT
+    # 8. Code — building and loading a Hive table
     s = ph.duplicate_slide(prs, CODE)
-    set_lines(s.shapes[0], ["Partitioned table, partition-pruned query"])
+    set_lines(s.shapes[0], ["Building and loading a Hive table"])
     set_lines(s.shapes[2], [
+        "CREATE DATABASE IF NOT EXISTS",
+        "  delivery_ops;",
+        "",
         "CREATE TABLE orders (",
         "  order_id INT, restaurant_id INT,",
         "  delivery_time_minutes INT",
         ")",
         "PARTITIONED BY (order_date STRING);",
         "",
-        "SELECT city, AVG(delivery_time_minutes)",
-        "FROM orders",
-        "WHERE order_date = '2026-09-06'",
-        "GROUP BY city;",
+        "LOAD DATA INPATH '/raw/orders.csv'",
+        "INTO TABLE orders",
+        "PARTITION (order_date='2026-09-06');",
     ], font_name="Courier New")
-    ph.notes(s, "Point out: nothing about the SELECT looks special. The WHERE clause naming the "
-                 "partition column is what triggers pruning -- Hive does the rest.")
+    ph.notes(s, "This is the full lifecycle before anyone queries anything. LOAD DATA doesn't copy the "
+                 "file twice -- it moves it from its raw HDFS path straight into the partition directory "
+                 "the Metastore expects. Nothing is validated until a query actually reads it back.")
+
+    # 9. Code — querying and joining in HiveQL
+    s = ph.duplicate_slide(prs, CODE)
+    set_lines(s.shapes[0], ["Querying and joining in HiveQL"])
+    set_lines(s.shapes[2], [
+        "SELECT r.price_range,",
+        "  ROUND(AVG(o.delivery_time_minutes), 1)",
+        "    AS avg_delivery",
+        "FROM orders o",
+        "JOIN restaurants r",
+        "  ON o.restaurant_id = r.restaurant_id",
+        "WHERE o.order_date = '2026-09-06'",
+        "GROUP BY r.price_range;",
+    ], font_name="Courier New")
+    ph.notes(s, "The JOIN looks exactly like a SQL join because it is one -- HiveQL borrows SQL's syntax "
+                 "rather than inventing its own. ROUND() is one of Hive's built-in functions, alongside "
+                 "FLOOR() and CEILING().")
 
     # 10. Stat — rows scanned
     s = ph.duplicate_slide(prs, STAT)
     set_lines(s.shapes[0], ["5,401 → 361", "rows scanned, naive vs. partition-pruned"])
-    ph.notes(s, "Same query, same answer -- the only difference is whether Hive had to read 15x more to get there.")
+    ph.notes(s, "This week's simulated order log: 5,401 rows across 14 days. One day's partition is 361 "
+                 "rows -- roughly 15x fewer read for a question that only ever needed one day's answer.")
 
     # 11. Statement
     s = ph.duplicate_slide(prs, STATEMENT)
@@ -232,7 +254,32 @@ def build():
                              "—  Compiles down to MapReduce, like Hive"])
     ph.notes(s, "Same underlying engine as Hive -- the difference is entirely in who writes it and why.")
 
-    # 20. Steps — 3-stage pipeline
+    # 20. Diagram — Pig Latin's data model (parallel boxes, no arrows)
+    s = ph.duplicate_slide(prs, DIAGRAM)
+    set_lines(s.shapes[0], ["Pig Latin's data model"])
+    for shp in list(s.shapes):
+        if shp.has_text_frame and shp.text_frame.text.startswith("[DIAGRAM"):
+            shp._element.getparent().remove(shp._element)
+    add_flow(s, Emu(685800), Emu(2600000), Emu(11048400), Emu(1500000),
+             ["34\nAtom", "(1042, 7, 34)\nTuple", "{(1042,..),\n(1043,..)}\nBag",
+              "[city#Blr,\nmins#34]\nMap"], connect=False)
+    ph.notes(s, "Atom -- one value (a delivery time in minutes). Tuple -- one ordered row (order_id, "
+                 "restaurant_id, delivery_time_minutes) -- same as one row in an RDBMS. Bag -- a "
+                 "collection of tuples, same as a table; a Pig relation like raw_orders IS a bag. "
+                 "Map -- key-value pairs, keyed by field name, always a string key.")
+
+    # 21. Diagram — what running a Pig script actually does
+    s = ph.duplicate_slide(prs, DIAGRAM)
+    set_lines(s.shapes[0], ["What running a Pig script actually does"])
+    for shp in list(s.shapes):
+        if shp.has_text_frame and shp.text_frame.text.startswith("[DIAGRAM"):
+            shp._element.getparent().remove(shp._element)
+    add_flow(s, Emu(914400), Emu(2700000), Emu(10362895), Emu(1400000),
+             ["Pig Latin\nscript", "Local or\nMapReduce mode", "Compiled\nMR job", "Clean\noutput"])
+    ph.notes(s, "Mirror of the HiveQL flow from Part 1 -- same shape, different starting point. The mode "
+                 "chosen in the second box is exactly the Local vs. MapReduce choice on the next slide.")
+
+    # 22. Steps — 3-stage pipeline
     s = ph.duplicate_slide(prs, STEPS)
     set_lines(s.shapes[0], ["A cleanup pipeline in three stages"])
     set_lines(s.shapes[1], ["1", "LOAD", "Read the raw order log as-is"])
@@ -240,7 +287,7 @@ def build():
     set_lines(s.shapes[3], ["3", "STORE", "Write the clean table Hive queries"])
     ph.notes(s, "This maps directly onto the Pig Latin script on the next slide -- same three verbs.")
 
-    # 21. Code — Pig Latin
+    # 23. Code — Pig Latin
     s = ph.duplicate_slide(prs, CODE)
     set_lines(s.shapes[0], ["The Pig Latin for that pipeline"])
     set_lines(s.shapes[2], [
@@ -257,40 +304,59 @@ def build():
     ], font_name="Courier New")
     ph.notes(s, "Narrate FILTER specifically -- that's the line doing the work the 4% stat just showed we need.")
 
-    # 22. Stat — before/after
+    # 24. Stat — before/after
     s = ph.duplicate_slide(prs, STAT)
     set_lines(s.shapes[0], ["4% → 0%", "invalid rows, before and after the FILTER"])
     ph.notes(s, "Same dataset, same rows counted the same way -- the FILTER step is the only thing that changed.")
 
-    # 23. Two Column — Hive vs Pig
+    # 25. Two Column — execution modes (both tools)
+    s = ph.duplicate_slide(prs, TWOCOL)
+    set_lines(s.shapes[0], ["Execution modes: local vs. MapReduce"])
+    set_lines(s.shapes[2], ["Local mode",
+                             "One data node, small input -- Pig reads/writes the plain Linux "
+                             "filesystem, not HDFS. Used to test a script before it runs at scale."])
+    set_lines(s.shapes[4], ["MapReduce mode",
+                             "The default for both tools -- multiple nodes, large input. HiveQL and "
+                             "Pig Latin both compile down to MapReduce jobs run on the cluster."])
+    ph.notes(s, "Same choice, both tools -- the one difference to flag is that Pig's local mode talks "
+                 "to the ordinary filesystem, which is why it's for a quick dry run, not production.")
+
+    # 26. Two Column — Hive vs Pig
     s = ph.duplicate_slide(prs, TWOCOL)
     set_lines(s.shapes[0], ["Hive vs. Pig"])
     set_lines(s.shapes[2], ["Hive", "Declarative SQL — for someone who already knows the question."])
     set_lines(s.shapes[4], ["Pig", "Procedural script — for someone who has to clean the answer first."])
     ph.notes(s, "Both compile to the same batch engine underneath -- this is a 'who' and 'when' distinction, not a 'how'.")
 
-    # 24. Section — Part 4
+    # 27. Two Column — Hive vs Pig, continued
+    s = ph.duplicate_slide(prs, TWOCOL)
+    set_lines(s.shapes[0], ["Hive vs. Pig, continued"])
+    set_lines(s.shapes[2], ["Hive",
+                             "Structured data only. Runs server-side via HiveServer2, with a web "
+                             "interface — but no native Avro support."])
+    set_lines(s.shapes[4], ["Pig",
+                             "Structured, semi-structured, and unstructured data. Runs client-side, "
+                             "no web interface, but supports Avro for handing output to another language."])
+    ph.notes(s, "The 'data types' line is the one that actually matters for this week's topic: Hive "
+                 "can't touch the unstructured slice of the log, Pig can -- that's the whole reason "
+                 "both tools exist side by side instead of Hive alone.")
+
+    # 28. Section — Part 4
     s = ph.duplicate_slide(prs, SECTION)
     set_lines(s.shapes[0], ["PART 4", "The Rest Of The Stack"])
     ph.notes(s, "Hive and Pig assume the data already landed in HDFS and that something scheduled the job. Two more gaps to close.")
 
-    # 25. Key Points — Sqoop/Flume
+    # 29. Key Points — getting data in and keeping it running
     s = ph.duplicate_slide(prs, KEYPOINTS)
-    set_lines(s.shapes[0], ["Getting raw data into HDFS"])
-    set_lines(s.shapes[2], ["—  Sqoop — bulk transfer from a relational database",
-                             "—  Flume — continuous log and event streaming",
-                             "—  Both land data before Pig ever runs"])
-    ph.notes(s, "Sqoop: nightly batch pulls from a production database. Flume: a live event stream. Different shapes, same destination.")
+    set_lines(s.shapes[0], ["Getting data in, and keeping it running"])
+    set_lines(s.shapes[2], ["—  Sqoop & Flume — batch and streaming ingestion into HDFS",
+                             "—  Oozie — schedules and chains the jobs in order",
+                             "—  ZooKeeper — keeps cluster services agreeing who's in charge"])
+    ph.notes(s, "Sqoop: nightly batch pulls from a production database. Flume: a live event stream. "
+                 "Oozie is the 'every night at 2am, in this order' piece. ZooKeeper is infrastructure "
+                 "plumbing, not a data tool -- none of the four touch the data itself.")
 
-    # 26. Key Points — Oozie/ZooKeeper
-    s = ph.duplicate_slide(prs, KEYPOINTS)
-    set_lines(s.shapes[0], ["Keeping it all running"])
-    set_lines(s.shapes[2], ["—  Oozie — schedules and chains the jobs",
-                             "—  ZooKeeper — keeps cluster services agreeing who's in charge",
-                             "—  Neither one touches the data itself"])
-    ph.notes(s, "Oozie is the 'every night at 2am, in this order' piece. ZooKeeper is infrastructure plumbing, not a data tool.")
-
-    # 27. Diagram — nightly pipeline
+    # 30. Diagram — nightly pipeline
     s = ph.duplicate_slide(prs, DIAGRAM)
     set_lines(s.shapes[0], ["A realistic nightly pipeline"])
     for shp in list(s.shapes):
@@ -301,24 +367,24 @@ def build():
     ph.notes(s, "Oozie is what actually ran all five steps in order, unattended, every night -- it's not a box "
                  "in the data path, it's the thing scheduling the whole row.")
 
-    # 28. Statement
+    # 31. Statement
     s = ph.duplicate_slide(prs, STATEMENT)
     set_lines(s.shapes[0], ["Every unstructured-data problem already has its tool."])
     ph.notes(s, "None of these compete with Hive or Pig -- each one fills a gap neither was built to cover.")
 
-    # 29. Quote
+    # 32. Quote
     s = ph.duplicate_slide(prs, QUOTE)
     set_lines(s.shapes[0], ["“Distributed systems don't remove the mess in your data — "
                              "they just give you a place big enough to clean it up.”",
                              "— Big Data engineering maxim"])
     ph.notes(s, "Land this as the session's one-liner before the recap.")
 
-    # 30. Statement — recap
+    # 33. Statement — recap
     s = ph.duplicate_slide(prs, STATEMENT)
     set_lines(s.shapes[0], ["Raw logs in. Pig cleans. Hive answers."])
     ph.notes(s, "The whole session in six words -- use this as the anchor before the takeaways slide.")
 
-    # 31. Key Points — takeaways
+    # 34. Key Points — takeaways
     s = ph.duplicate_slide(prs, KEYPOINTS)
     set_lines(s.shapes[0], ["What to remember"])
     set_lines(s.shapes[2], ["—  Partition and bucket, or scan everything every time",
@@ -326,7 +392,7 @@ def build():
                              "—  Hive and Pig still run on MapReduce underneath"])
     ph.notes(s, "Closing recap -- three points, no new information.")
 
-    # 32. Closing
+    # 35. Closing
     s = ph.duplicate_slide(prs, CLOSING)
     set_lines(s.shapes[0], ["Thank you.", "Next: scaling analytics beyond batch."])
     ph.notes(s, "Assumption flagged for review: next week's exact topic isn't in topics.txt yet as of this "

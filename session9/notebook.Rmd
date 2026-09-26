@@ -1,0 +1,466 @@
+---
+title: "BDA Session — 2026-09-29"
+subtitle: "In-Database Analytics: Advanced SQL & Apache MADlib"
+author: "BDA Instructor"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: darkly
+    highlight: zenburn
+    toc: true
+    toc_float: true
+    number_sections: true
+---
+
+<!--
+## Where to run this notebook
+
+This `.Rmd` works on any platform with R 4.x and the `rmarkdown` package.
+Pick whichever fits your setup:
+
+| Platform | Best for | How to open |
+|----------|----------|-------------|
+| **posit.cloud** *(class default)* | Zero setup, browser-only | New Project → Upload → knit |
+| **Quarto + RStudio Desktop** *(recommended next step)* | Local dev, richer output formats | Rename `.Rmd` → `.qmd`; same syntax, better themes & multi-language support |
+| **VS Code + R Extension** | Engineers who live in VS Code | `Ctrl+Shift+K` knits; install `rmarkdown` pkg first |
+| **GitHub Codespaces** | Reproducible, version-controlled cloud | Add `devcontainer.json` with `rocker/tidyverse`; free 60 h/month |
+| **Binder** | Sharing a live notebook with zero install | Push repo to GitHub → mybinder.org → paste URL → instant RStudio in browser |
+| **JupyterHub + IRkernel** | Multi-user classroom or org | Instructor provisions once; students log in via browser |
+
+> **Note:** Content synthesized from training knowledge — YouTube transcripts were unavailable
+> due to proxy restrictions. Flag: `synthesized: no transcript available`
+-->
+
+```{r setup, include=FALSE}
+# Global chunk options — apply to all chunks below
+knitr::opts_chunk$set(
+  echo    = TRUE,    # show code in output
+  warning = FALSE,   # suppress package warnings (cleaner output)
+  message = FALSE    # suppress messages like library load notices
+)
+
+# Fix the random seed so results are perfectly reproducible
+set.seed(42)
+
+# Core packages — available on posit.cloud with no install
+library(dplyr)    # data manipulation (mirrors SQL syntax closely)
+library(ggplot2)  # data visualisation
+```
+
+---
+
+# Topic 1: Advanced SQL Window Functions & Greenplum Extensions
+
+SQL window functions let you compute aggregates **over a set of rows related to the current row** — without collapsing the result set into a summary like `GROUP BY` does. Think of a window as a sliding frame of data that moves row by row.
+
+In **Greenplum** (an MPP PostgreSQL database), these functions run in parallel across every segment simultaneously. For a platform tracking hundreds of millions of orders, that parallelism is the difference between an 18-minute analytical job and an overnight batch.
+
+In this notebook, we use R and `dplyr` to *illustrate* the same logic SQL window functions implement. The equivalences are direct: wherever you see `group_by() + mutate()` in dplyr, the SQL counterpart is `PARTITION BY` inside `OVER()`.
+
+## Synthetic dataset: restaurant weekly sales
+
+```{r create-data}
+# Build a synthetic Zomato/Swiggy-style dataset
+# 5 cities × 6 restaurants × 8 weeks = 240 rows
+
+cities      <- c("Mumbai", "Delhi", "Bangalore", "Chennai", "Hyderabad")
+n_rest      <- 6    # restaurants per city
+n_weeks     <- 8    # weeks of history
+
+# Generate restaurant IDs per city
+restaurant_data <- expand.grid(
+  city          = cities,
+  restaurant_id = 1:n_rest,   # 1–6 within each city
+  week_num      = 1:n_weeks
+) %>%
+  mutate(
+    # Unique restaurant ID across all cities
+    restaurant_id = paste0(substr(city, 1, 3), "_R", restaurant_id),
+
+    # Week-ending date starting from 2026-07-06
+    week_ending   = as.Date("2026-07-06") + (week_num - 1) * 7,
+
+    # Weekly revenue: base (city effect) + restaurant effect + noise
+    base_revenue  = case_when(
+      city == "Mumbai"    ~ 180000,
+      city == "Delhi"     ~ 165000,
+      city == "Bangalore" ~ 155000,
+      city == "Chennai"   ~ 130000,
+      TRUE                ~ 120000   # Hyderabad
+    ),
+    # Each restaurant has a persistent quality multiplier (0.6–1.4)
+    quality_mult  = rep(
+      runif(length(cities) * n_rest, 0.6, 1.4),
+      each = n_weeks
+    ),
+    weekly_revenue = as.integer(base_revenue * quality_mult *
+                                  rnorm(n(), mean = 1, sd = 0.08))
+  ) %>%
+  select(restaurant_id, city, week_ending, weekly_revenue) %>%
+  arrange(city, restaurant_id, week_ending)
+
+# Preview the first few rows
+head(restaurant_data, 10)
+```
+
+## RANK() within partition — "which restaurant is #1 in Mumbai this week?"
+
+```{r window-rank}
+# SQL equivalent:
+#   RANK() OVER (PARTITION BY city, week_ending ORDER BY weekly_revenue DESC)
+#
+# dplyr equivalent: group_by the partition columns, then mutate (not summarise!)
+ranked <- restaurant_data %>%
+  group_by(city, week_ending) %>%           # PARTITION BY city, week_ending
+  mutate(
+    city_rank = rank(-weekly_revenue,        # ORDER BY weekly_revenue DESC
+                     ties.method = "min")    # ties share the lowest rank number
+  ) %>%
+  ungroup()
+
+# Show the top-ranked restaurant in each city for the most recent week
+ranked %>%
+  filter(week_ending == max(week_ending), city_rank == 1) %>%
+  select(city, restaurant_id, weekly_revenue, city_rank) %>%
+  arrange(desc(weekly_revenue))
+```
+
+The key insight: `group_by() + mutate()` keeps **every row** (like a window function), while `group_by() + summarise()` collapses them (like GROUP BY). SQL's `OVER()` clause works the same way.
+
+## LAG() — week-over-week revenue change
+
+```{r window-lag}
+# SQL equivalent:
+#   weekly_revenue - LAG(weekly_revenue, 1) OVER (
+#       PARTITION BY restaurant_id ORDER BY week_ending
+#   ) AS wow_delta
+#
+# In dplyr: group by restaurant, order by date, then lag()
+
+wow <- restaurant_data %>%
+  group_by(restaurant_id) %>%               # PARTITION BY restaurant_id
+  arrange(week_ending) %>%                  # ORDER BY week_ending
+  mutate(
+    prev_revenue = lag(weekly_revenue, 1),  # LAG(weekly_revenue, 1)
+    wow_delta    = weekly_revenue - prev_revenue,   # week-over-week change
+    wow_pct      = round(100 * wow_delta / prev_revenue, 1)  # as a percentage
+  ) %>%
+  ungroup()
+
+# Which restaurants had the biggest single-week surge?
+wow %>%
+  filter(!is.na(wow_pct)) %>%
+  arrange(desc(wow_pct)) %>%
+  select(restaurant_id, city, week_ending, weekly_revenue, wow_pct) %>%
+  head(8)
+```
+
+## Cumulative SUM and NTILE (deciles)
+
+```{r window-cumsum-ntile}
+# SQL equivalent:
+#   SUM(weekly_revenue) OVER (
+#       PARTITION BY restaurant_id ORDER BY week_ending
+#       ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+#   ) AS cumulative_revenue
+#
+#   NTILE(10) OVER (PARTITION BY city, week_ending ORDER BY weekly_revenue DESC)
+
+enriched <- ranked %>%
+  group_by(restaurant_id) %>%
+  arrange(week_ending) %>%
+  mutate(
+    cumulative_revenue = cumsum(weekly_revenue)   # running total
+  ) %>%
+  group_by(city, week_ending) %>%
+  mutate(
+    # Assign each restaurant to a decile (1 = top 10%, 10 = bottom 10%)
+    revenue_decile = ntile(desc(weekly_revenue), 10)
+  ) %>%
+  ungroup()
+
+# Average cumulative revenue by city after 8 weeks
+enriched %>%
+  filter(week_ending == max(week_ending)) %>%
+  group_by(city) %>%
+  summarise(avg_cumulative = mean(cumulative_revenue),
+            .groups = "drop") %>%
+  arrange(desc(avg_cumulative))
+```
+
+## Visualisation: revenue trend with ranking overlay
+
+```{r plot-trend, fig.width=11, fig.height=5}
+# Plot weekly revenue for the #1 restaurant in each city
+top_restaurants <- ranked %>%
+  group_by(city) %>%
+  filter(city_rank == 1) %>%
+  # pick the restaurant that was #1 most often
+  count(restaurant_id) %>%
+  slice_max(n, n = 1) %>%
+  pull(restaurant_id)
+
+ranked %>%
+  filter(restaurant_id %in% top_restaurants) %>%
+  ggplot(aes(x = week_ending, y = weekly_revenue / 1000,
+             colour = city, group = restaurant_id)) +
+  geom_line(linewidth = 1.1) +
+  geom_point(size = 2.5) +
+  scale_colour_brewer(palette = "Set2") +
+  labs(
+    title   = "Top Restaurant Weekly Revenue by City",
+    subtitle = "Each line = the restaurant ranked #1 most frequently in that city",
+    x       = "Week Ending",
+    y       = "Revenue (₹ thousands)",
+    colour  = "City"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "bottom")
+```
+
+The chart mirrors what `RANK() OVER (PARTITION BY city...)` returns in Greenplum — each city's leader tracked independently across time.
+
+---
+
+# Topic 2: Apache MADlib — In-Database Machine Learning
+
+Apache MADlib is a library of ML algorithms implemented as SQL user-defined functions. You call `madlib.logregr_train(...)` the same way you call `SUM()` or `RANK()`. The difference: MADlib's functions run on every Greenplum segment in parallel, so training a logistic-regression model on 50 million rows takes minutes instead of hours.
+
+**The core philosophy:** bring the algorithm to the data, not the data to the algorithm.
+
+Since MADlib runs inside PostgreSQL/Greenplum (not in R), this notebook *simulates* the same computations using base R functions (`lm()`, `glm()`, `kmeans()`). Wherever you see a comment showing the MADlib SQL call, that's exactly what you would execute in production.
+
+## Synthetic customer dataset for churn prediction
+
+```{r customer-data}
+# Simulate a customer behaviour table
+# In production this would be a Greenplum table: customer_features
+n_customers <- 2000   # illustrative sample
+
+customers <- data.frame(
+  customer_id    = paste0("C", sprintf("%05d", 1:n_customers)),
+
+  # Feature 1: months on platform (0–36)
+  tenure_months  = sample(1:36, n_customers, replace = TRUE),
+
+  # Feature 2: average monthly spend in ₹
+  monthly_spend  = round(rnorm(n_customers, mean = 650, sd = 250)),
+
+  # Feature 3: support tickets in last 6 months (frustration signal)
+  support_tickets = rpois(n_customers, lambda = 1.2),
+
+  # Feature 4: login frequency in last 30 days (engagement signal)
+  login_freq_30d  = rpois(n_customers, lambda = 8)
+) %>%
+  mutate(
+    monthly_spend = pmax(monthly_spend, 50),    # no negative spend
+
+    # Churn label: high tickets + low engagement + short tenure → more likely to churn
+    churn_prob = plogis(                        # logistic function → probability
+      -2.5
+      + 0.4  * support_tickets
+      - 0.04 * login_freq_30d
+      - 0.05 * tenure_months
+      - 0.001 * monthly_spend
+    ),
+    churned = rbinom(n_customers, 1, churn_prob)   # 0 = retained, 1 = churned
+  ) %>%
+  select(-churn_prob)
+
+cat("Churn rate in sample:", round(100 * mean(customers$churned), 1), "%\n")
+head(customers, 5)
+```
+
+## Train / test split
+
+```{r train-test-split}
+# 70/30 split — in Greenplum you'd use a random() column filter in your SQL
+train_idx  <- sample(nrow(customers), 0.7 * nrow(customers))
+train_data <- customers[train_idx, ]
+test_data  <- customers[-train_idx, ]
+
+cat("Training rows:", nrow(train_data), "\n")
+cat("Test rows    :", nrow(test_data),  "\n")
+```
+
+## MADlib analogue: logistic regression with glm()
+
+```{r logistic-regression}
+# ------------------------------------------------------------------
+# MADlib SQL (what you'd run in Greenplum):
+#
+#   SELECT madlib.logregr_train(
+#       'customer_features',
+#       'churn_model',
+#       'churned',
+#       'ARRAY[tenure_months, monthly_spend, support_tickets, login_freq_30d]',
+#       NULL, 20, 'irls'
+#   );
+#
+# R equivalent using glm() with family = binomial (logistic):
+# ------------------------------------------------------------------
+
+churn_model <- glm(
+  churned ~ tenure_months + monthly_spend + support_tickets + login_freq_30d,
+  data   = train_data,
+  family = binomial(link = "logit")   # logistic regression
+)
+
+# Inspect coefficients (like querying the churn_model table in MADlib)
+summary_tbl <- data.frame(
+  feature     = names(coef(churn_model)),
+  coefficient = round(coef(churn_model), 4),
+  p_value     = round(summary(churn_model)$coefficients[, 4], 4)
+)
+summary_tbl
+```
+
+Positive coefficients increase churn probability; negative ones reduce it. `support_tickets` should be the strongest positive predictor — we built that signal into the data.
+
+## Score customers and evaluate
+
+```{r scoring-and-eval}
+# ------------------------------------------------------------------
+# MADlib SQL (scoring):
+#
+#   SELECT customer_id,
+#          madlib.logregr_predict(coef,
+#              ARRAY[tenure_months, monthly_spend,
+#                    support_tickets, login_freq_30d]) AS predicted_churn,
+#          madlib.logregr_predict_prob(coef, ...) AS churn_probability
+#   FROM   customer_features JOIN churn_model ON true
+#   ORDER  BY churn_probability DESC;
+#
+# R equivalent:
+# ------------------------------------------------------------------
+
+test_data <- test_data %>%
+  mutate(
+    # Predicted probability of churning
+    churn_probability = predict(churn_model,
+                                newdata = test_data,
+                                type    = "response"),
+
+    # Classify: threshold at 0.5
+    predicted_churn   = ifelse(churn_probability >= 0.5, 1, 0)
+  )
+
+# Confusion matrix
+conf_matrix <- table(
+  Predicted = test_data$predicted_churn,
+  Actual    = test_data$churned
+)
+print(conf_matrix)
+
+# Accuracy
+accuracy <- mean(test_data$predicted_churn == test_data$churned)
+cat("\nAccuracy:", round(100 * accuracy, 1), "%\n")
+```
+
+## Visualisation: churn probability distribution
+
+```{r churn-plot, fig.width=9, fig.height=4}
+ggplot(test_data, aes(x = churn_probability,
+                      fill = factor(churned, labels = c("Retained", "Churned")))) +
+  geom_histogram(binwidth = 0.05, position = "identity",
+                 alpha = 0.65, colour = "white") +
+  scale_fill_manual(values = c("Retained" = "#2ecc71", "Churned" = "#e74c3c")) +
+  labs(
+    title    = "Predicted Churn Probability Distribution",
+    subtitle = "MADlib logregr_predict_prob() equivalent — higher = higher churn risk",
+    x        = "Predicted Probability of Churning",
+    y        = "Number of Customers",
+    fill     = "Actual Label"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "bottom")
+```
+
+## MADlib analogue: k-means customer segmentation
+
+```{r kmeans-segmentation}
+# ------------------------------------------------------------------
+# MADlib SQL:
+#   SELECT madlib.kmeans(
+#       'customer_features',
+#       'ARRAY[monthly_spend, login_freq_30d, tenure_months]',
+#       4,                  -- k = 4 clusters
+#       'madlib.dist_norm2' -- Euclidean distance
+#   );
+#
+# R equivalent:
+# ------------------------------------------------------------------
+
+# Scale features before clustering (important! different units)
+features_scaled <- scale(customers[, c("monthly_spend",
+                                       "login_freq_30d",
+                                       "tenure_months")])
+
+kmeans_result <- kmeans(
+  features_scaled,
+  centers  = 4,     # k = 4 segments
+  nstart   = 25,    # try 25 random starts, keep best
+  iter.max = 100    # max iterations per start
+)
+
+# Attach cluster labels back to customer data
+customers$segment <- factor(kmeans_result$cluster,
+                             labels = paste0("Segment ", 1:4))
+
+# Profile each segment
+customers %>%
+  group_by(segment) %>%
+  summarise(
+    n_customers    = n(),
+    avg_spend      = round(mean(monthly_spend)),
+    avg_logins     = round(mean(login_freq_30d), 1),
+    avg_tenure     = round(mean(tenure_months), 1),
+    churn_rate_pct = round(100 * mean(churned), 1),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(avg_spend))
+```
+
+```{r kmeans-plot, fig.width=9, fig.height=5}
+ggplot(customers, aes(x = monthly_spend, y = login_freq_30d,
+                      colour = segment, shape = factor(churned))) +
+  geom_point(alpha = 0.55, size = 2) +
+  scale_colour_brewer(palette = "Set1") +
+  scale_shape_manual(values = c(16, 4),
+                     labels = c("Retained", "Churned")) +
+  labs(
+    title    = "Customer Segments — k-Means (k=4)",
+    subtitle = "MADlib kmeans() equivalent  ·  shape = churn outcome",
+    x        = "Monthly Spend (₹)",
+    y        = "Login Frequency (30-day)",
+    colour   = "Segment",
+    shape    = "Outcome"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "bottom")
+```
+
+Each cluster represents a distinct customer behaviour pattern. In production, MADlib's `kmeans()` would process millions of customers in parallel across Greenplum segments, with results written directly into a scoring table — no data movement required.
+
+---
+
+# References
+
+> ⚠ Content synthesized from training knowledge — YouTube transcripts unavailable (proxy blocked).
+
+## Videos (watch independently)
+
+- [Mastering Window Functions in SQL for Data Analysis: 1 Hour Mini-Course](https://youtube.com/watch?v=JpwwbwGSll4)
+- [The Ultimate SQL Window Functions Course](https://youtube.com/watch?v=Wvg4PjbMTO8)
+- [Greenplum SQL Scripts for Data Analysts](https://youtube.com/watch?v=2C5Vx4TuH1g)
+- [Greenplum Database — Massively Parallel PostgreSQL for Analytics](https://youtube.com/watch?v=X8MmLeFZ1Os)
+- [Machine Learning on Greenplum with Apache MADlib](https://youtube.com/watch?v=1yDn4H4zxtk)
+- [Classification Models in Greenplum using Apache MADlib](https://youtube.com/watch?v=ht9y50oZUEU)
+- [Parallel Postgres: Gaming MAD skills with Apache MADlib and Greenplum](https://youtube.com/watch?v=qgQy_AnswNk)
+
+## Official Documentation
+
+- [Apache MADlib Documentation](https://madlib.apache.org/docs/latest/)
+- [Greenplum Analytics Functions Reference](https://docs.vmware.com/en/VMware-Greenplum/)
+- [PostgreSQL Window Functions Tutorial](https://www.postgresql.org/docs/current/tutorial-window.html)
+- [dplyr Window Functions Vignette](https://dplyr.tidyverse.org/articles/window-functions.html)

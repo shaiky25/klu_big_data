@@ -1,0 +1,57 @@
+sessions:
+  - date: 2026-07-25
+    status: completed
+    topics:
+      - Data Preparation
+      - Model Planning
+      - Model Building
+      - Communicating Results and Findings
+      - Operationalizing Analytics Models
+
+  - date: 2026-08-01
+    status: completed
+    topics:
+      - "Operationalizing Initial Analysis of the Data: Initial Exploration, apply basic analytics methods such as distributions"
+
+  - date: 2026-08-11
+    status: completed
+    topics:
+      - "Statistical Tests and Summary Operations, and differentiate between results that are Statistically Sound vs Statistically Significant"
+
+  - date: 2026-08-18
+    status: completed
+    topics:
+      - Identify a model for your data and define the null and alternative hypothesis
+      - Experimentation and demonstration of initial analysis of data using R
+      - Need of analytic and select an appropriate technique based on business objectives
+
+  - date: 2026-08-25
+    status: completed
+    topics:
+      - Apply some of the more methods in Analytics solutions
+      - Introduction of Various Algorithms in ML & DL
+      - The technical foundations for the methods
+
+  - date: 2026-09-01
+    status: completed
+    topics:
+      - Use appropriate diagnostic methods to validate the models created, using R
+      - Database analytical functions to fit, score and evaluate models
+
+  - date: 2026-09-15
+    status: completed
+    topics:
+      - "Data - Technology & Tools: Tool to perform analytics on unstructured data using MapReduce programming paradigm"
+      - "Hadoop: Hadoop Architecture and Components, implementing distributed data processing using Hadoop"
+
+  - date: 2026-09-22
+    status: completed
+    topics:
+      - "HIVE: Hive Architecture and Data Models, Hive Query Language (HiveQL) and Data Processing"
+      - "PIG, and other products in the Hadoop ecosystem for unstructured data analytics"
+
+  - date: 2026-09-29
+    status: pending
+    topics:
+      - Effectively use advanced SQL functions and Greenplum extensions for in-database analytics
+      - Use MADlib to solve analytics problems in database
