@@ -5,7 +5,7 @@ description: Generates this week's class PDF, deck, and R Markdown. Use when use
 
 # bda-weekly-deliverables
 
-Act as the instructor's course-production partner for the BDA POP class: they know the week's subject; this skill carries the voice, format, and cross-platform rules that hold across every week. The outcome is three files in `{project-root}/sessionN/` — a PDF document, a slide deck, and a posit.cloud R Markdown — that the instructor can deliver from and upload as-is. That bar means: content actually matches whatever `topics.txt` says this week covers, R runs top-to-bottom on posit.cloud with zero setup, and the deck opens in PowerPoint, Keynote, and Google Slides.
+Act as the instructor's course-production partner for the BDA POP class: they know the week's subject; this skill carries the voice, format, and cross-platform rules that hold across every week. The outcome is three files in `{project-root}/sessionN/` — a PDF document, a slide deck, and a posit.cloud R Markdown — that the instructor can deliver from and upload as-is. That bar means: content actually matches whatever `topics.yaml` says this week covers, R runs top-to-bottom on posit.cloud with zero setup, and the deck opens in PowerPoint, Keynote, and Google Slides.
 
 ## Resolution rules
 
@@ -15,7 +15,7 @@ Act as the instructor's course-production partner for the BDA POP class: they kn
 
 ## Determine the week and its content brief
 
-Run `python3 scripts/current_topic.py` (add `--date MM/DD/YYYY` to target a week other than the latest) for `{session_number, date, topic_text, output_dir, output_dir_exists, content_brief_path}`. `output_dir` is where all three deliverables go; `sessionN` numbering already holds for session2 (08/01) through session5 (08/25).
+Run `python3 scripts/current_topic.py` (add `--date MM/DD/YYYY` to target a week other than the resolved one) for `{session_number, date, status, topic_text, output_dir, output_dir_exists, content_brief_path}`. With no `--date`, it resolves to the earliest `status: pending` entry in `topics.yaml` (falling back to the latest entry if none are pending). `output_dir` is where all three deliverables go; `sessionN` numbering already holds for session2 (08/01) through session5 (08/25).
 
 If `content_brief_path` is non-null, it's the authoritative content brief — already hardened through brainstorming, don't re-derive it and proceed straight to the build. If it's null, draft the brief directly from `topic_text` against the rules below; offer `bmad-brainstorming` or `bmad-forge-idea` first if the topic is too raw to draft against unaided, or — running unattended with no one to ask — proceed with the best-effort brief and flag that assumption in the handoff summary. Then, before starting the build, present the drafted brief and ask "anything to add or adjust before I build all three?" — a missed angle here means redoing a knit-validated Rmd, a lint-passed deck, and a rendered PDF instead of one short exchange.
 
@@ -43,6 +43,8 @@ Create `output_dir` if `output_dir_exists` is false. Name files `sessionN-<topic
 **Slide deck**: build from `assets/session-template-apple-style.pptx`, following `assets/pptx-template-agent-guide.md`. Open it with python-pptx; for each content slide call `pptx_helpers.duplicate_slide(prs, index)` against the closest `LAYOUT NN` pattern slide rather than building shapes from scratch, fill its placeholders, and set real notes with `pptx_helpers.notes()`. Never restyle (white background, solid-black text, Helvetica Neue, Apple-blue `#0071E3` accents stay as-is). Once content is built, drop the 12 original pattern slides with `pptx_helpers.delete_slide()` so they don't ship in the deliverable, then finish with `pptx_helpers.finalize_and_save(prs, path)` instead of `prs.save()` — that call carries the confirmed Keynote/PowerPoint/Google-Slides fixes (correct `sldSz@type`, patched `docProps/app.xml`, notesMasterIdLst) and works on any `Presentation` object regardless of its source file. Then lint it — `python3 scripts/lint_deck.py PATH.pptx` — and fix every issue it names before handoff. This catches the confirmed-fixable breakage only; see Known gap.
 
 **PDF document**: a written companion in the same voice, covering the week's content in prose and panels (not a slide-by-slide transcript). Render with `pandoc PATH.md -o PATH.pdf -V geometry:margin=1in -V mainfont:Arial --pdf-engine=xelatex` — the default pandoc PDF engine can't handle the unicode this content style uses (≥, ², em dashes); xelatex can.
+
+Once all three deliverables exist and pass their validation (knit check + `lint_rmd.py`, `lint_deck.py`, the pandoc render), run `python3 scripts/current_topic.py --date <resolved date> --mark-completed` to flip that week's `status` to `completed` in `topics.yaml`. Skip this in Validate mode — it doesn't regenerate anything, so status shouldn't move.
 
 ## Modes
 
