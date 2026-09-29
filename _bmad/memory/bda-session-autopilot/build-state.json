@@ -1,32 +1,31 @@
 {
-  "sessions": {
-    "session8": {
-      "status": "built",
-      "date": "2026-09-19",
-      "class_date": "09/22/2026",
-      "topic_text": "HIVE: Hive Architecture and Data Models, Hive Query Language (HiveQL) and Data Processing. / PIG, products in the Hadoop ecosystem other products in the Hadoop ecosystem for unstructured data analytics",
-      "deliverables": {
-        "rmd": "session8/session8-hive-pig-hadoop-ecosystem.Rmd",
-        "pdf": "session8/session8-hive-pig-hadoop-ecosystem.pdf",
-        "deck": "session8/Hive_Pig_Hadoop_Ecosystem.pptx",
-        "pdf_source_md": "session8/session8-hive-pig-hadoop-ecosystem.md",
-        "deck_build_script": "session8/build_deck.py"
-      },
-      "validation": {
-        "knit": "passed",
-        "lint_rmd": "passed",
-        "lint_deck": "passed (32 slides, within 30-35 cap)",
-        "pandoc_pdf": "passed"
-      },
-      "assumptions": [
-        "No content brief existed for this date -- built directly from topics.txt's two bullets (Hive architecture/HiveQL, Pig + broader Hadoop ecosystem tools).",
-        "Session7 (09/15) already introduced Hive/Pig/HBase by name at a one-paragraph overview level as part of last week's ecosystem survey. This week goes deeper (architecture, data model, HiveQL, Pig Latin) rather than repeating that overview -- flagged since it's a judgment call about depth/overlap, not something topics.txt states explicitly.",
-        "PDF rendered with 'Liberation Sans' instead of the skill's literal 'Arial' instruction -- Arial itself isn't installed in this container and pulling in real Microsoft fonts (ttf-mscorefonts-installer) hit an unrelated broken apt dependency (update-notifier-common's postinst needs a python3-apt build that doesn't match this container's non-default python3 alternative). Liberation Sans is metric-compatible with Arial and visually near-identical; this is a one-time environment note, not expected to recur once fonts-liberation is installed (which this run did).",
-        "Deck's closing 'next week' teaser is deliberately generic ('scaling analytics beyond batch') -- topics.txt has no 09/29 entry yet, so no specific next topic was invented.",
-        "Rest-of-ecosystem tools (Sqoop, Flume, Oozie, ZooKeeper) were selected as the standard Hadoop-ecosystem set for 'other products for unstructured data analytics' per topics.txt's bullet -- topics.txt doesn't name specific tools, this is the content brief's best-effort interpretation."
-      ],
-      "environment_notes": "This run installed the full toolchain from scratch in a fresh container: python-pptx+lxml (pip), r-base+r-cran-rmarkdown (apt), pandoc+texlive-xetex+texlive-fonts-recommended (apt), plus fonts-liberation and poppler-utils (apt, for the Arial substitute and a visual PDF check). All succeeded. ttf-mscorefonts-installer was attempted (to get literal Arial) and failed due to an unrelated broken apt dependency chain in this container (python3-apt/apt_pkg mismatch against a non-standard python3 alternative) -- not pursued further since fonts-liberation resolved the actual rendering need.",
-      "keynote_gap_mentioned": true
-    }
+  "session8": {
+    "status": "built",
+    "date": "2026-09-19",
+    "class_date": "09/22/2026",
+    "topic_text": "* HIVE: Hive Architecture and Data Models, Hive Query Language (HiveQL) and Data Processing.\n   \n* PIG, products in the Hadoop ecosystem other products in the Hadoop ecosystem for unstructured data analytics",
+    "deliverables": {
+      "rmd": "session8/session8-hive-pig-hadoop-ecosystem.Rmd",
+      "pdf": "session8/session8-hive-pig-hadoop-ecosystem.pdf",
+      "deck": "session8/Hive_Pig_Hadoop_Ecosystem.pptx",
+      "pdf_source_md": "session8/session8-hive-pig-hadoop-ecosystem.md",
+      "deck_build_script": "session8/build_deck.py"
+    },
+    "validation": {
+      "knit": "passed",
+      "lint_rmd": "passed",
+      "lint_deck": "passed (32 slides, within 30-35 cap)",
+      "pandoc_pdf": "passed"
+    },
+    "assumptions": [
+      "No content brief existed for this date -- built directly from topics.txt's two bullets (Hive architecture/HiveQL, Pig + broader Hadoop ecosystem tools).",
+      "Session7 (09/15) already introduced Hive/Pig/HBase by name at a one-paragraph overview level as part of last week's ecosystem survey. This week goes deeper (architecture, data model, HiveQL, Pig Latin) rather than repeating that overview -- flagged since it's a judgment call about depth/overlap, not something topics.txt states explicitly.",
+      "PDF rendered with 'Liberation Sans' instead of the skill's literal 'Arial' instruction -- Arial itself isn't installed in this container and pulling in real Microsoft fonts (ttf-mscorefonts-installer) hit an unrelated broken apt dependency (update-notifier-common's postinst needs a python3-apt build that doesn't match this container's non-default python3 alternative). Liberation Sans is metric-compatible with Arial and visually near-identical; this is a one-time environment note, not expected to recur once fonts-liberation is installed (which this run did).",
+      "Deck's closing 'next week' teaser is deliberately generic ('scaling analytics beyond batch') -- topics.txt has no 09/29 entry yet, so no specific next topic was invented.",
+      "Rest-of-ecosystem tools (Sqoop, Flume, Oozie, ZooKeeper) were selected as the standard Hadoop-ecosystem set for 'other products for unstructured data analytics' per topics.txt's bullet -- topics.txt doesn't name specific tools, this is the content brief's best-effort interpretation."
+    ],
+    "environment_notes": "This run installed the full toolchain from scratch in a fresh container: python-pptx+lxml (pip), r-base+r-cran-rmarkdown (apt), pandoc+texlive-xetex+texlive-fonts-recommended (apt), plus fonts-liberation and poppler-utils (apt, for the Arial substitute and a visual PDF check). All succeeded. ttf-mscorefonts-installer was attempted (to get literal Arial) and failed due to an unrelated broken apt dependency chain in this container (python3-apt/apt_pkg mismatch against a non-standard python3 alternative) -- not pursued further since fonts-liberation resolved the actual rendering need.",
+    "keynote_gap_mentioned": true,
+    "tooling_fix_09_26": "09/26 pulse's Session Watch flagged session8 as 'changed'. Root-caused to two compounding bugs, both fixed this run, not an actual edit by Faiz (git log -p -- topics.txt confirms the file hasn't changed since the 09/19 commit that added this entry and built session8): (1) this file previously stored topic_text as a cleaned/joined paraphrase ('...Processing. / PIG, products...') instead of topics.txt's literal raw slice -- corrected above. (2) check-pending-sessions.py reads state via state.get(f'session{n}') at the TOP LEVEL, but this file previously nested all sessions under a 'sessions' wrapper key, so the lookup always returned {} and every session would have shown 'changed' forever regardless of real edits -- flattened this file to top-level session keys to match the script's actual schema. Re-ran check-pending-sessions.py after both fixes: session8 now correctly buckets as 'current'. No rebuild was needed or performed; deliverables are untouched from the 09/19 build."
   }
 }
