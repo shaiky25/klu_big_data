@@ -51,7 +51,7 @@ sessions:
       - "PIG, and other products in the Hadoop ecosystem for unstructured data analytics"
 
   - date: 2026-09-29
-    status: pending
+    status: completed
     topics:
       - Effectively use advanced SQL functions and Greenplum extensions for in-database analytics
       - Use MADlib to solve analytics problems in database

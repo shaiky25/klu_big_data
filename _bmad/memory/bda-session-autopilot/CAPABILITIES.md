@@ -5,7 +5,7 @@
 | Code | Name | Description | Source |
 |------|------|-------------|--------|
 | [BD] | build-session-deliverables | Build and validate one week's PDF, deck, and Rmd | `references/build-session-deliverables.md` |
-| [WS] | check-pending-sessions | Find which topics.txt entries need building or re-review | `references/check-pending-sessions.md` |
+| [WS] | check-pending-sessions | Find which topics.yaml entries need building or re-review | `references/check-pending-sessions.md` |
 
 ## Tools
 

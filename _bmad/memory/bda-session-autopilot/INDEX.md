@@ -6,7 +6,7 @@
 - `BOND.md` — who I serve (the instructor running the BDA POP class)
 - `MEMORY.md` — what I know (curated long-term knowledge)
 - `CAPABILITIES.md` — what I can do (built-in + tools)
-- `PULSE.md` — what I do autonomously (weekly Saturday check of topics.txt, build + validate + notify)
+- `PULSE.md` — what I do autonomously (weekly Saturday check of topics.yaml, build + validate + notify)
 
 ## Session Logs
 - `sessions/` — raw session notes by date (YYYY-MM-DD.md), curated into MEMORY.md during Pulse
