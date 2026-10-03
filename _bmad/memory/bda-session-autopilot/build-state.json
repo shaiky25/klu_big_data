@@ -27,5 +27,17 @@
     "environment_notes": "This run installed the full toolchain from scratch in a fresh container: python-pptx+lxml (pip), r-base+r-cran-rmarkdown (apt), pandoc+texlive-xetex+texlive-fonts-recommended (apt), plus fonts-liberation and poppler-utils (apt, for the Arial substitute and a visual PDF check). All succeeded. ttf-mscorefonts-installer was attempted (to get literal Arial) and failed due to an unrelated broken apt dependency chain in this container (python3-apt/apt_pkg mismatch against a non-standard python3 alternative) -- not pursued further since fonts-liberation resolved the actual rendering need.",
     "keynote_gap_mentioned": true,
     "tooling_fix_09_26": "09/26 pulse's Session Watch flagged session8 as 'changed'. Root-caused to two compounding bugs, both fixed this run, not an actual edit by Faiz (git log -p -- topics.txt confirms the file hasn't changed since the 09/19 commit that added this entry and built session8): (1) this file previously stored topic_text as a cleaned/joined paraphrase ('...Processing. / PIG, products...') instead of topics.txt's literal raw slice -- corrected above. (2) check-pending-sessions.py reads state via state.get(f'session{n}') at the TOP LEVEL, but this file previously nested all sessions under a 'sessions' wrapper key, so the lookup always returned {} and every session would have shown 'changed' forever regardless of real edits -- flattened this file to top-level session keys to match the script's actual schema. Re-ran check-pending-sessions.py after both fixes: session8 now correctly buckets as 'current'. No rebuild was needed or performed; deliverables are untouched from the 09/19 build."
+  },
+  "session9": {
+    "status": "built-externally",
+    "date": "2026-10-03",
+    "class_date": "09/29/2026",
+    "topic_text": "* Effectively use advanced SQL functions and Greenplum extensions for in-database analytics\n* Use MADlib to solve analytics problems in database",
+    "deliverables": {
+      "rmd": "session9/notebook.Rmd",
+      "pdf": "session9/supplement.pdf",
+      "deck": "session9/slides.pptx"
+    },
+    "note": "Built and committed directly by Faiz outside the autopilot (single commit 'session9' / ed46f14), before build-state.json tracking existed for this date -- confirmed via git log (no autopilot-style deliverable names or validation trail). No knit/lint/pandoc validation recorded here since the autopilot never built this one. Today's Session Watch bucketed it as 'changed' only because build-state.json had no topic_text on record to compare against -- same false-positive root cause class as session8's 09/26 fix, not an actual topics.yaml edit (topics.yaml's 09/29 entry and this folder's content match). Recording topic_text now so future pulses correctly bucket this as 'current'. Left completely untouched per the hands-off-hand-built-work boundary -- never rebuild."
   }
 }
